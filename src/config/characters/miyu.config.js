@@ -27,6 +27,18 @@ export const MIYU_MODEL_CONFIG = {
       ]
     }
   },
+  audio: {
+    idle: [
+      './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_1.ogg',
+      './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_2.ogg',
+      './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_3.ogg',
+      './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_4.ogg'
+    ],
+    pickup: [
+      './assets/models/miyu/audio/pickup/Miyu_Formation_Select.ogg'
+    ],
+    intervalSeconds: 20
+  },
   mouthConfig: {
     atlasSrc: './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
     atlasExtraSrc: './assets/common/mouths/All_Mouths_Transparent.png',

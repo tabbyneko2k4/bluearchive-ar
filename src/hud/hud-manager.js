@@ -12,6 +12,7 @@ import {
 } from '../utils/three-helpers';
 import { ConsoleManager } from './console-manager';
 import { getHUDHTMLTemplate } from './hud-ui';
+import { CharacterAudioManager } from '../audio/character-audio-manager';
 
 // Ensure custom A-Frame components are registered
 import '../components/three-ar-drag';
@@ -21,6 +22,9 @@ export class PixelHUDManager {
   constructor() {
     this.models = MODEL_CONFIGS;
     this.activeModelId = (this.models && this.models.length > 0) ? this.models[0].id : null;
+    this.audioManager = new CharacterAudioManager({
+      onToast: (msg, type) => this.showToast(msg, type)
+    });
     this.hudVisible = true;
     this.drawerOpen = false;
     this.activeTab = 'models';
@@ -86,6 +90,7 @@ export class PixelHUDManager {
 
     this.populateAssetsTag();
     this.attachEventListeners();
+    this.updateAudioButtonUI();
     this.renderModelsList();
     this.resetAutoHideTimer();
     this.showToast('BLUE ARCHIVE AR READY', 'blue');
@@ -208,10 +213,39 @@ export class PixelHUDManager {
     }
   }
 
+  updateAudioButtonUI() {
+    const btn = document.getElementById('btn-toggle-audio');
+    if (!btn) return;
+    const isMuted = this.audioManager.isMuted;
+    const unmutedIcon = btn.querySelector('.audio-icon-unmuted');
+    const mutedIcon = btn.querySelector('.audio-icon-muted');
+
+    if (isMuted) {
+      btn.classList.add('muted');
+      btn.setAttribute('title', 'Unmute Character Audio');
+      if (unmutedIcon) unmutedIcon.classList.add('hidden');
+      if (mutedIcon) mutedIcon.classList.remove('hidden');
+    } else {
+      btn.classList.remove('muted');
+      btn.setAttribute('title', 'Mute Character Audio');
+      if (unmutedIcon) unmutedIcon.classList.remove('hidden');
+      if (mutedIcon) mutedIcon.classList.add('hidden');
+    }
+  }
+
   attachEventListeners() {
     document.getElementById('mobile-ui-overlay').addEventListener('pointerdown', () => {
       this.resetAutoHideTimer();
     });
+
+    const btnToggleAudio = document.getElementById('btn-toggle-audio');
+    if (btnToggleAudio) {
+      btnToggleAudio.addEventListener('click', () => {
+        const isMuted = this.audioManager.toggleMute();
+        this.updateAudioButtonUI();
+        this.showToast(`SOUND: ${isMuted ? 'MUTED' : 'UNMUTED'}`, isMuted ? 'yellow' : 'green');
+      });
+    }
 
     document.getElementById('btn-toggle-hud').addEventListener('click', () => {
       this.setHUDVisibility(false);
@@ -559,7 +593,22 @@ export class PixelHUDManager {
       }
     });
 
+    // Character voice lines event hooks
+    entity.addEventListener('dragstart', () => {
+      this.audioManager.startPickup();
+    });
+
+    entity.addEventListener('dragend', () => {
+      this.audioManager.startIdle({ immediate: false });
+    });
+
     scene.appendChild(entity);
+
+    // Initialize and start character voice audio
+    if (model.audio) {
+      this.audioManager.loadCharacter(model.audio, model.name);
+      this.audioManager.startIdle({ immediate: true });
+    }
 
     const dragComp = entity.components ? entity.components['three-ar-drag'] : null;
     if (dragComp && dragComp.targetPosition) {
@@ -588,6 +637,9 @@ export class PixelHUDManager {
     const model = this.models.find(m => m.id === modelId);
     if (!model || !model.placed) return;
 
+    // Stop all character voice audio
+    this.audioManager.stop();
+
     if (model.entityEl && model.entityEl.parentNode) {
       model.entityEl.parentNode.removeChild(model.entityEl);
     }
@@ -606,6 +658,8 @@ export class PixelHUDManager {
   }
 
   resetAllModels() {
+    this.audioManager.stop();
+
     this.models.forEach((m) => {
       if (m.placed && m.entityEl && m.entityEl.parentNode) {
         m.entityEl.parentNode.removeChild(m.entityEl);
