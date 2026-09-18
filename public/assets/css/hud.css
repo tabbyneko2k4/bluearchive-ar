@@ -102,6 +102,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 36px;
+  max-height: 36px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.brand-logo {
+  height: 28px !important;
+  max-height: 28px !important;
+  width: auto !important;
+  max-width: 140px !important;
+  object-fit: contain !important;
+  display: block;
 }
 
 .pulse-dot {
@@ -111,24 +125,112 @@
   background-color: #22C55E;
   box-shadow: 0 0 6px #22C55E;
   animation: pulse-dot 2s infinite ease-in-out;
+  flex-shrink: 0;
 }
 
 @keyframes pulse-dot {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(0.85);
     opacity: 0.5;
   }
 }
 
-.brand-title {
+/* Initial Tap-to-Place Prompt Banner Overlay */
+.spawn-prompt-banner {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 58px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 400px;
+  background: var(--canvas-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 22;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: prompt-float 2.5s infinite ease-in-out;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spawn-prompt-banner.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-14px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@keyframes prompt-float {
+
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  50% {
+    transform: translateX(-50%) translateY(4px);
+  }
+}
+
+.prompt-icon-ring {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  color: #60A5FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: prompt-pulse 2s infinite ease-in-out;
+}
+
+@keyframes prompt-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(96, 165, 250, 0);
+  }
+}
+
+.prompt-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.prompt-title {
   font-family: var(--font-pixel);
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.05em;
-  color: var(--text-primary);
+  color: #93C5FD;
+  font-weight: 700;
+}
+
+.prompt-subtitle {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
 }
 
 .hud-center-status {
@@ -236,7 +338,7 @@
   align-items: center;
   gap: 8px;
   z-index: 30;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
   pointer-events: none;
@@ -280,8 +382,13 @@
 }
 
 @keyframes flash-anim {
-  0% { opacity: 0.85; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -349,7 +456,8 @@
   gap: 5px;
 }
 
-.bento-tab-btn:hover, .bento-tab-btn.active {
+.bento-tab-btn:hover,
+.bento-tab-btn.active {
   color: var(--text-primary);
   background: var(--btn-base);
   border-color: var(--border-structural);
@@ -447,7 +555,7 @@
 .model-icon {
   width: 32px;
   height: 32px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-structural);
   border-radius: 6px;
   display: flex;
@@ -803,10 +911,23 @@
   padding-bottom: 2px;
 }
 
-.console-log-line.log { color: #F7F6F3; }
-.console-log-line.warn { color: #FBBF24; background: rgba(251, 191, 36, 0.08); }
-.console-log-line.error { color: #F87171; background: rgba(248, 113, 113, 0.12); }
-.console-log-line.info { color: #60A5FA; }
+.console-log-line.log {
+  color: #F7F6F3;
+}
+
+.console-log-line.warn {
+  color: #FBBF24;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.console-log-line.error {
+  color: #F87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.console-log-line.info {
+  color: #60A5FA;
+}
 
 .log-timestamp {
   font-size: 9px;
@@ -824,12 +945,392 @@
   flex-shrink: 0;
 }
 
-.log-tag.log { background: rgba(16, 185, 129, 0.2); color: #34D399; }
-.log-tag.warn { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
-.log-tag.error { background: rgba(239, 68, 68, 0.2); color: #F87171; }
-.log-tag.info { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+.log-tag.log {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+}
+
+.log-tag.warn {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+}
+
+.log-tag.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+}
+
+.log-tag.info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
 
 .log-content {
   flex: 1;
 }
 
+/* --------------------------------------------------------------------------
+   9. AR Instruction / Onboarding Guide Modal (.instruction-modal-overlay)
+   -------------------------------------------------------------------------- */
+.instruction-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  width: 100vw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(10, 10, 14, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+  pointer-events: auto;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  overflow: hidden;
+}
+
+.instruction-modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.instruction-card {
+  width: 100%;
+  max-width: 400px;
+  width: min(400px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  max-height: calc(100% - 24px);
+  margin: auto;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-structural);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: modal-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-pop {
+  from {
+    transform: scale(0.94) translateY(12px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.instruction-header {
+  height: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.instruction-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.instruction-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-structural) transparent;
+}
+
+.instruction-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--btn-base);
+  border: 1px solid var(--border-structural);
+  border-radius: 8px;
+  padding: 8px 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.instruction-step:hover {
+  background: var(--btn-hover);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  color: #93C5FD;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-content strong {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.step-content p {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+.step-content strong.highlight,
+.step-content p strong {
+  color: #93C5FD;
+  font-weight: 600;
+}
+
+.instruction-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.instruction-ack-btn {
+  width: 100%;
+  height: 38px;
+  background: var(--btn-primary-bg);
+  border: 1px solid var(--border-structural);
+  border-radius: 6px;
+  color: var(--btn-primary-text);
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.instruction-ack-btn:hover,
+.instruction-ack-btn:active {
+  transform: scale(0.97);
+  background: #FFFFFF;
+}
+
+/* Quick mouth preset buttons */
+.quick-mouth-presets {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.quick-mouth-presets::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-mouth-presets .bento-tab-btn {
+  flex: 1;
+  min-width: 60px;
+  background: var(--btn-base);
+  border: 1px solid var(--border-structural);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.quick-mouth-presets .bento-tab-btn:hover,
+.quick-mouth-presets .bento-tab-btn:active {
+  background: var(--btn-hover);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #93C5FD;
+  transform: scale(0.96);
+}
+
+.pixel-btn-sm {
+  flex: 1;
+  min-width: 60px;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 6px 4px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  border-radius: 4px;
+  color: #00ffc8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.pixel-btn-sm:active {
+  transform: scale(0.95);
+  background: rgba(0, 255, 200, 0.2);
+}
+
+/* Mobile Screen Tuning (< 480px) */
+@media (max-width: 480px) {
+  .pixel-hud-bar {
+    left: 8px;
+    right: 8px;
+    height: 44px;
+    padding: 0 8px;
+  }
+
+  .brand-logo {
+    height: 24px;
+    max-width: 105px;
+  }
+
+  .hud-center-status {
+    gap: 4px;
+  }
+
+  .status-badge {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+
+  .hud-icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mobile-dock {
+    left: 8px;
+    right: 8px;
+    height: 48px;
+    padding: 0 4px;
+  }
+
+  .dock-btn {
+    height: 38px;
+    margin: 0 2px;
+    font-size: 9px;
+    gap: 4px;
+  }
+
+  .dock-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bento-drawer-container {
+    left: 8px;
+    right: 8px;
+    padding: 10px;
+  }
+
+  .bento-tab-btn {
+    padding: 6px 8px;
+    font-size: 9px;
+  }
+
+  /* Instruction Modal Mobile Tuning */
+  .instruction-modal-overlay {
+    padding: 8px;
+  }
+
+  .instruction-card {
+    width: min(360px, calc(100vw - 16px));
+    max-width: 100%;
+    margin: auto;
+    max-height: calc(100dvh - 16px);
+    border-radius: 10px;
+  }
+
+  .instruction-header {
+    height: 42px;
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .instruction-title {
+    font-size: 10px;
+  }
+
+  .instruction-body {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .instruction-step {
+    padding: 7px 9px;
+    gap: 8px;
+  }
+
+  .step-num {
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
+  }
+
+  .step-content strong {
+    font-size: 9px;
+  }
+
+  .step-content p {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .instruction-footer {
+    padding: 8px 12px;
+  }
+
+  .instruction-ack-btn {
+    height: 36px;
+    font-size: 9px;
+  }
+}

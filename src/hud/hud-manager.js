@@ -32,7 +32,7 @@ export class PixelHUDManager {
     this.lightsEnabled = true;
     this.lightIntensity = 1.2;
     this.flatShader = true;
-    this.debugGridsEnabled = true;
+    this.debugGridsEnabled = false;
     this.debugGridsGroup = null;
 
     // Selected object transform state
@@ -88,7 +88,7 @@ export class PixelHUDManager {
     this.attachEventListeners();
     this.renderModelsList();
     this.resetAutoHideTimer();
-    this.showToast('HUD & DUAL DEBUG GRIDS READY', 'blue');
+    this.showToast('BLUE ARCHIVE AR READY', 'blue');
     this.setupAFrameListeners();
     this.initDebugGrids();
   }
@@ -339,16 +339,60 @@ export class PixelHUDManager {
       }
     });
 
-    document.getElementById('btn-toggle-remote-console').addEventListener('click', () => {
-      this.consoleManager.toggleRemoteConsole();
-    });
+    const btnToggleInstructions = document.getElementById('btn-toggle-instructions');
+    if (btnToggleInstructions) {
+      btnToggleInstructions.addEventListener('click', () => {
+        this.toggleInstructions();
+      });
+    }
 
-    document.getElementById('btn-clear-console').addEventListener('click', () => this.consoleManager.clearConsoleLogs());
-    document.getElementById('btn-copy-console').addEventListener('click', () => this.consoleManager.copyConsoleLogs());
+    const btnCloseInstructions = document.getElementById('btn-close-instructions');
+    if (btnCloseInstructions) {
+      btnCloseInstructions.addEventListener('click', () => {
+        this.toggleInstructions(false);
+      });
+    }
 
-    document.getElementById('btn-floating-clear').addEventListener('click', () => this.consoleManager.clearConsoleLogs());
-    document.getElementById('btn-floating-copy').addEventListener('click', () => this.consoleManager.copyConsoleLogs());
-    document.getElementById('btn-floating-close').addEventListener('click', () => this.consoleManager.toggleRemoteConsole(false));
+    const btnAckInstructions = document.getElementById('btn-ack-instructions');
+    if (btnAckInstructions) {
+      btnAckInstructions.addEventListener('click', () => {
+        this.toggleInstructions(false);
+      });
+    }
+
+    const btnToggleRemoteConsole = document.getElementById('btn-toggle-remote-console');
+    if (btnToggleRemoteConsole) {
+      btnToggleRemoteConsole.addEventListener('click', () => {
+        this.consoleManager.toggleRemoteConsole();
+      });
+    }
+
+    const btnClearConsole = document.getElementById('btn-clear-console');
+    if (btnClearConsole) btnClearConsole.addEventListener('click', () => this.consoleManager.clearConsoleLogs());
+
+    const btnCopyConsole = document.getElementById('btn-copy-console');
+    if (btnCopyConsole) btnCopyConsole.addEventListener('click', () => this.consoleManager.copyConsoleLogs());
+
+    const btnFloatingClear = document.getElementById('btn-floating-clear');
+    if (btnFloatingClear) btnFloatingClear.addEventListener('click', () => this.consoleManager.clearConsoleLogs());
+
+    const btnFloatingCopy = document.getElementById('btn-floating-copy');
+    if (btnFloatingCopy) btnFloatingCopy.addEventListener('click', () => this.consoleManager.copyConsoleLogs());
+
+    const btnFloatingClose = document.getElementById('btn-floating-close');
+    if (btnFloatingClose) btnFloatingClose.addEventListener('click', () => this.consoleManager.toggleRemoteConsole(false));
+  }
+
+  toggleInstructions(forceState) {
+    const modal = document.getElementById('instruction-modal');
+    if (!modal) return;
+    const isHidden = modal.classList.contains('hidden');
+    const show = forceState !== undefined ? forceState : isHidden;
+    if (show) {
+      modal.classList.remove('hidden');
+    } else {
+      modal.classList.add('hidden');
+    }
   }
 
   switchTab(tabName) {
@@ -530,6 +574,9 @@ export class PixelHUDManager {
     this.transformState.posY = pos.y;
     this.transformState.posZ = pos.z;
 
+    const promptBanner = document.getElementById('spawn-prompt-banner');
+    if (promptBanner) promptBanner.classList.add('hidden');
+
     console.log(`[SPAWNED MODEL] ${model.name} at (${Number(pos.x).toFixed(2)}, ${Number(pos.y).toFixed(2)}, ${Number(pos.z).toFixed(2)})`);
     this.triggerShutterFlash();
     this.showToast(`SPAWNED: ${model.name} AT (${Number(pos.x).toFixed(1)}, ${Number(pos.y).toFixed(1)}, ${Number(pos.z).toFixed(1)})`, 'green');
@@ -548,6 +595,12 @@ export class PixelHUDManager {
     model.placed = false;
     model.entityEl = null;
 
+    const anyPlaced = this.models.some(m => m.placed);
+    if (!anyPlaced) {
+      const promptBanner = document.getElementById('spawn-prompt-banner');
+      if (promptBanner) promptBanner.classList.remove('hidden');
+    }
+
     this.showToast(`DESPAWNED: ${model.name}`);
     this.renderModelsList();
   }
@@ -560,6 +613,9 @@ export class PixelHUDManager {
       m.placed = false;
       m.entityEl = null;
     });
+
+    const promptBanner = document.getElementById('spawn-prompt-banner');
+    if (promptBanner) promptBanner.classList.remove('hidden');
 
     this.triggerShutterFlash();
     this.showToast('DESPAWNED ALL OBJECTS');
