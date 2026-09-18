@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>MIYU // 3D ANIMATION & MOUTH SYNC DEBUG STUDIO</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Three.js r137 + OrbitControls + GLTFLoader -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #080b10;
+      --bg-panel: rgba(14, 20, 29, 0.95);
+      --bg-card: rgba(22, 31, 46, 0.85);
+      --border-color: rgba(45, 62, 80, 0.6);
+      --border-active: #00ffc8;
+      --accent-cyan: #00ffc8;
+      --accent-blue: #3b82f6;
+      --accent-pink: #f43f5e;
+      --accent-yellow: #eab308;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 12px;
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Header Bar */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      background: rgba(0, 255, 200, 0.1);
+      border: 1px solid rgba(0, 255, 200, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: rgba(30, 41, 59, 0.7);
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      background: rgba(0, 255, 200, 0.08);
+    }
+
+    .btn.active {
+      background: var(--accent-cyan);
+      color: #000;
+      border-color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .btn-pink {
+      border-color: rgba(244, 63, 94, 0.4);
+      color: var(--accent-pink);
+    }
+
+    .btn-pink:hover {
+      border-color: var(--accent-pink);
+      background: rgba(244, 63, 94, 0.15);
+      color: #fff;
+    }
+
+    /* Main Content: 3D Viewport + Right Sidebar */
+    main {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #viewport-container {
+      flex: 1;
+      position: relative;
+      outline: none;
+    }
+
+    #webgl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Camera Hints Overlay */
+    .viewport-hints {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(10, 15, 23, 0.75);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      pointer-events: none;
+      line-height: 1.5;
+    }
+
+    .viewport-hints span {
+      color: var(--accent-cyan);
+    }
+
+    /* Floating View Angle Selector Dock (Xem tứ phía) */
+    .viewport-view-bar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(10, 15, 23, 0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 6px;
+      z-index: 15;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .view-bar-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin: 0 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .view-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: rgba(30, 41, 59, 0.6);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .view-btn:hover {
+      background: rgba(0, 255, 200, 0.15);
+      border-color: rgba(0, 255, 200, 0.4);
+      color: var(--accent-cyan);
+    }
+
+    .view-btn.active {
+      background: var(--accent-cyan);
+      color: #050811;
+      border-color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .view-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border-color);
+      margin: 0 2px;
+    }
+
+    /* Right Sidebar Panel */
+    #sidebar {
+      width: 380px;
+      max-width: 45vw;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(10, 15, 23, 0.8);
+    }
+
+    .sidebar-tab-btn {
+      flex: 1;
+      padding: 10px 6px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-tab-btn:hover {
+      color: #fff;
+    }
+
+    .sidebar-tab-btn.active {
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+      background: rgba(0, 255, 200, 0.04);
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-content.hidden {
+      display: none;
+    }
+
+    /* Controls Panel */
+    .section-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .control-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    select,
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: #fff;
+      padding: 6px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      outline: none;
+      transition: border 0.15s ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Subtab Switcher */
+    .palette-subtab-btn {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .palette-subtab-btn.active {
+      background: rgba(0, 255, 200, 0.16) !important;
+      border-color: var(--accent-cyan) !important;
+      color: var(--accent-cyan) !important;
+      box-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
+    }
+
+    /* Mouth Shapes Grid */
+    .mouth-grid-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .mouth-card {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 4px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .mouth-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-1px);
+    }
+
+    .mouth-card.active {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 255, 200, 0.12);
+      box-shadow: 0 0 8px rgba(0, 255, 200, 0.2);
+    }
+
+    .mouth-preview-canvas {
+      width: 48px;
+      height: 48px;
+      image-rendering: pixelated;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 3px;
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .mouth-card-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    /* Keyframe Track List */
+    .keyframe-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .keyframe-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .keyframe-item:hover {
+      border-color: rgba(0, 255, 200, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .keyframe-item.current-active {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 255, 200, 0.08);
+      box-shadow: 0 0 10px rgba(0, 255, 200, 0.15);
+    }
+
+    .kf-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .keyframe-time {
+      color: var(--accent-yellow);
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .keyframe-mouth {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .kf-mouth-select {
+      flex: 1;
+      height: 28px;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      outline: none;
+    }
+
+    .kf-mouth-select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .keyframe-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    /* Bottom Timeline Panel */
+    footer {
+      height: 105px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 8px 16px 12px 16px;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .timeline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .time-readout {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #fff;
+    }
+
+    .time-readout span {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .transport-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Timeline Bar & Markers */
+    .timeline-track-wrap {
+      position: relative;
+      width: 100%;
+      height: 28px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+
+      /* Timeline Bar & Draggable Markers */
+      .timeline-track-wrap {
+        position: relative;
+        width: 100%;
+        height: 32px;
+        background: #0f172a;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        padding: 0;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      #timeline-slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 5;
+      }
+
+      .timeline-progress {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: rgba(0, 255, 200, 0.15);
+        border-right: 2px solid var(--accent-cyan);
+        pointer-events: none;
+        width: 0%;
+        z-index: 6;
+      }
+
+      .timeline-markers-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 15;
+      }
+
+      .kf-marker {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 20px;
+        margin-left: -10px;
+        /* Centered exactly on time position */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: grab;
+        pointer-events: auto;
+        z-index: 16;
+        transition: transform 0.1s ease;
+        touch-action: none;
+      }
+
+      .kf-marker:hover {
+        transform: scale(1.15);
+        z-index: 25;
+      }
+
+      .kf-marker.dragging {
+        transform: scale(1.25);
+        cursor: grabbing !important;
+        z-index: 30;
+      }
+
+      .kf-marker-pin {
+        width: 10px;
+        height: 10px;
+        background: var(--accent-yellow);
+        border: 1.5px solid #fff;
+        transform: rotate(45deg);
+        margin-top: 3px;
+        border-radius: 2px;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+      }
+
+      .kf-marker.current-active .kf-marker-pin,
+      .kf-marker.dragging .kf-marker-pin {
+        background: var(--accent-cyan);
+        border-color: #fff;
+        box-shadow: 0 0 10px var(--accent-cyan);
+      }
+
+      .kf-marker-stem {
+        width: 2px;
+        flex: 1;
+        background: var(--accent-yellow);
+        opacity: 0.8;
+        margin-top: 2px;
+      }
+
+      .kf-marker.current-active .kf-marker-stem,
+      .kf-marker.dragging .kf-marker-stem {
+        background: var(--accent-cyan);
+        opacity: 1;
+        box-shadow: 0 0 4px var(--accent-cyan);
+      }
+
+      /* Floating Tooltip during hover & drag */
+      .kf-marker-tooltip {
+        position: absolute;
+        bottom: 34px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--accent-cyan);
+        border-radius: 4px;
+        padding: 3px 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #fff;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+        z-index: 40;
+      }
+
+      .kf-marker:hover .kf-marker-tooltip,
+      .kf-marker.dragging .kf-marker-tooltip {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .speed-btn {
+        font-size: 10px;
+        padding: 2px 6px;
+      }
+
+      /* Toast */
+      #studio-toast {
+        position: fixed;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid var(--accent-cyan);
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 100;
+      }
+
+      #studio-toast.show {
+        opacity: 1;
+      }
+  </style>
+</head>
+
+<body>
+  <div id="app-container">
+
+    <!-- Top Header -->
+    <header>
+      <div class="brand">
+        <span class="brand-tag">3D STUDIO</span>
+        <span class="brand-title">MIYU // ANIMATION & MOUTH KEYFRAME TIMELINE</span>
+      </div>
+
+      <div class="header-actions">
+        <label style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted);">ANIMATION:</label>
+        <select id="select-animation" style="width: 240px;"></select>
+
+        <button class="btn" id="btn-toggle-shader" title="Toggle between Flat Unlit & PBR">
+          <span>SHADER: <strong id="lbl-shader" style="color: var(--accent-cyan);">FLAT</strong></span>
+        </button>
+
+        <button class="btn" id="btn-recenter-cam" title="Recenter View onto Face">
+          <span>FOCUS FACE</span>
+        </button>
+
+        <a href="./" class="btn btn-pink" style="text-decoration: none;">
+          <span>AR SCENE ↗</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Viewport + Sidebar -->
+    <main>
+      <!-- 3D Viewport -->
+      <div id="viewport-container">
+        <canvas id="webgl-canvas"></canvas>
+
+        <!-- Floating View Angle Selector Dock (Xem tứ phía) -->
+        <div class="viewport-view-bar">
+          <span class="view-bar-title">CAMERA:</span>
+          <button class="view-btn active" data-view="front" title="Chính diện (Key: 1)">FRONT</button>
+          <button class="view-btn" data-view="back" title="Sau lưng (Key: 2)">BACK</button>
+          <button class="view-btn" data-view="left" title="Cạnh trái (Key: 3)">LEFT</button>
+          <button class="view-btn" data-view="right" title="Cạnh phải (Key: 4)">RIGHT</button>
+          <button class="view-btn" data-view="top" title="Từ trên đỉnh xuống (Key: 5)">TOP</button>
+          <div class="view-divider"></div>
+          <button class="view-btn" data-view="face" title="Cận cảnh khuôn mặt (Key: F)">FACE</button>
+          <button class="view-btn" data-view="full" title="Toàn thân (Key: B)">FULL</button>
+          <div class="view-divider"></div>
+          <button class="view-btn" id="btn-auto-rotate" title="Bật/Tắt xoay 360° tự động (Key: R)">
+            <span>⟳ 360° AUTO</span>
+          </button>
+        </div>
+
+        <div class="viewport-hints">
+          <div><strong style="color:#00ffc8;">L-CLICK + DRAG:</strong> ORBIT ROTATE (XOAY TỰ DO 360°)</div>
+          <div><strong style="color:#3b82f6;">R-CLICK + DRAG:</strong> PAN CAMERA</div>
+          <div><strong style="color:#eab308;">SCROLL:</strong> ZOOM IN / OUT</div>
+          <div><strong style="color:#f43f5e;">KEYS [1 - 5]:</strong> FRONT / BACK / LEFT / RIGHT / TOP</div>
+          <div><strong style="color:#00ffc8;">KEY [R]:</strong> 360° AUTO | <strong style="color:#3b82f6;">[F]:</strong>
+            FACE | <strong style="color:#eab308;">[SPACE]:</strong> PLAY/PAUSE</div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar -->
+      <div id="sidebar">
+        <!-- Tabs -->
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab-btn active" data-tab="timeline">TIMELINE MAP</div>
+          <div class="sidebar-tab-btn" data-tab="palette">61 MOUTHS</div>
+          <div class="sidebar-tab-btn" data-tab="json">JSON DATA</div>
+        </div>
+
+        <!-- Tab 1: Keyframe Timeline Manager -->
+        <div class="tab-content" id="tab-timeline">
+          <div class="section-title">
+            <span>KEYFRAME MAPPINGS</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn" id="btn-auto-detect"
+                style="padding: 3px 8px; font-size: 10px; color: var(--accent-yellow); border-color: var(--accent-yellow); font-weight: 700;"
+                title="Tự động phân tích mốc đổi miệng từ khớp xương bone_mouth trong animation">
+                ⚡ AUTO-DETECT
+              </button>
+              <button class="btn" id="btn-add-keyframe"
+                style="padding: 3px 8px; font-size: 10px; color: var(--accent-cyan); border-color: var(--accent-cyan);">
+                + ADD (CUR TIME)
+              </button>
+            </div>
+          </div>
+
+          <div class="control-card" style="font-size: 11px; line-height: 1.5; color: var(--text-muted);">
+            <div>Bấm <strong style="color: var(--accent-yellow);">⚡ AUTO-DETECT</strong> để tự động quét biến dạng khớp
+              xương <code>bone_mouth</code> và sinh sẵn các mốc keyframe. Kéo thả marker dưới timeline để tinh chỉnh!
+            </div>
+          </div>
+
+          <div class="keyframe-list" id="keyframes-container">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div class="control-card">
+            <div class="section-title"><span>CURRENT ACTIVE MOUTH</span></div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <canvas id="active-mouth-preview" class="mouth-preview-canvas"
+                style="width: 56px; height: 56px;"></canvas>
+              <div>
+                <div
+                  style="font-family: 'JetBrains Mono'; font-weight: 700; font-size: 13px; color: var(--accent-cyan);"
+                  id="active-mouth-title">#00 SMILE</div>
+                <div style="color: var(--text-muted); font-size: 10px; margin-top: 2px;" id="active-mouth-desc">Closed
+                  gentle smile</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Mouth Shapes Palette (Standard 61 + Extra 130) -->
+        <div class="tab-content hidden" id="tab-palette">
+          <!-- Subtab switcher -->
+          <div
+            style="display: flex; gap: 4px; background: rgba(15, 23, 42, 0.7); padding: 4px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <button class="btn palette-subtab-btn active" id="subtab-std"
+              style="flex: 1; text-align: center; justify-content: center; font-size: 10px; font-weight: 700;">
+              STANDARD HD (61)
+            </button>
+            <button class="btn palette-subtab-btn" id="subtab-extra"
+              style="flex: 1; text-align: center; justify-content: center; font-size: 10px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+              ✨ EXTRA UI (130)
+            </button>
+          </div>
+
+          <!-- Section 1: Standard HD Mouths -->
+          <div id="section-palette-std">
+            <div class="section-title" style="margin-top: 4px;">
+              <span>STANDARD PRESETS</span>
+            </div>
+
+            <!-- Quick Presets -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+              <button class="btn preset-btn" data-idx="0">#00 SMILE</button>
+              <button class="btn preset-btn" data-idx="1">#01 TALK</button>
+              <button class="btn preset-btn" data-idx="3">#03 O-SHAPE</button>
+              <button class="btn preset-btn" data-idx="17">#17 LAUGH</button>
+              <button class="btn preset-btn" data-idx="25">#25 BIG CRY</button>
+              <button class="btn preset-btn" data-idx="33">#33 SHOUT</button>
+            </div>
+
+            <div class="mouth-grid-container" id="mouth-grid-std" style="margin-top: 8px;">
+              <!-- 61 standard mouth tiles -->
+            </div>
+          </div>
+
+          <!-- Section 2: Extra UI Mouths -->
+          <div id="section-palette-extra" class="hidden">
+            <div class="section-title" style="margin-top: 4px;">
+              <span>ALL_MOUTHS_UI (130 KIỂU ĐÃ KHỬ NỀN)</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4; margin-bottom: 6px;">
+              Đã xử lý xóa phông <strong style="color: #f6e2d9;">#F6E2D9</strong> thành trong suốt 100% không viền lem.
+            </div>
+            <div class="mouth-grid-container" id="mouth-grid-extra">
+              <!-- 130 extra mouth tiles -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: JSON Import / Export -->
+        <div class="tab-content hidden" id="tab-json">
+          <div class="section-title">
+            <span>EXPORT TIMELINE JSON</span>
+            <button class="btn" id="btn-copy-json"
+              style="padding: 3px 8px; font-size: 10px; color: var(--accent-cyan);">COPY JSON</button>
+          </div>
+
+          <textarea id="json-output" readonly
+            style="width: 100%; height: 260px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 4px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 10px; outline: none; resize: none;"></textarea>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" id="btn-save-storage"
+              style="flex: 1; border-color: var(--accent-cyan); color: var(--accent-cyan);">SAVE TO STORAGE</button>
+            <button class="btn" id="btn-import-json" style="flex: 1;">IMPORT FROM TEXT</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Transport & Scrubber Timeline -->
+    <footer>
+      <div class="timeline-header">
+        <div class="transport-controls">
+          <button class="btn" id="btn-play-pause"><span>▶ PLAY</span></button>
+          <button class="btn" id="btn-step-back"><span>⏮ -1F</span></button>
+          <button class="btn" id="btn-step-fwd"><span>+1F ⏭</span></button>
+          <button class="btn" id="btn-loop" style="margin-left: 8px;"><span>LOOP: ON</span></button>
+
+          <div style="display: flex; gap: 2px; margin-left: 12px;">
+            <button class="btn speed-btn" data-speed="0.1">0.1x</button>
+            <button class="btn speed-btn" data-speed="0.25">0.25x</button>
+            <button class="btn speed-btn" data-speed="0.5">0.5x</button>
+            <button class="btn speed-btn active" data-speed="1.0">1.0x</button>
+          </div>
+        </div>
+
+        <div class="time-readout">
+          TIME: <span id="lbl-time-cur">0.00s</span> / <span id="lbl-time-total">0.00s</span>
+          &nbsp;|&nbsp;
+          FRAME: <span id="lbl-frame-cur">0</span> / <span id="lbl-frame-total">0</span> (30fps)
+        </div>
+      </div>
+
+      <!-- Scrubber Track with Keyframe Markers -->
+      <div class="timeline-track-wrap" id="timeline-track">
+        <input type="range" id="timeline-slider" min="0" max="100" step="0.001" value="0">
+        <div class="timeline-progress" id="timeline-progress"></div>
+        <div class="timeline-markers-layer" id="timeline-markers"></div>
+      </div>
+    </footer>
+
+    <!-- Floating Toast -->
+    <div id="studio-toast">TOAST MESSAGE</div>
+  </div>
+
+  <script>
+    // ==========================================
+    // STUDIO CORE LOGIC & THREE.JS ENGINE
+    // ==========================================
+
+    const MODEL_SRC = './assets/models/miyu/Miyu.glb';
+    const ATLAS_STD_SRC = './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png';
+    const ATLAS_EXTRA_SRC = './assets/common/mouths/All_Mouths_Transparent.png';
+
+    // State
+    let renderer, scene, camera, controls;
+    let clock = new THREE.Clock();
+    let mixer = null;
+    let modelRoot = null;
+    let animationClips = [];
+    let currentAction = null;
+    let currentClip = null;
+
+    let isPlaying = false;
+    let isLooping = true;
+    let playbackSpeed = 1.0;
+    let currentTime = 0.0;
+    let maxDuration = 1.0;
+
+    let flatShader = true;
+    let atlasStdImage = null;
+    let atlasStdLoaded = false;
+    let atlasExtraImage = null;
+    let atlasExtraLoaded = false;
+    let mouthCanvas = null;
+    let mouthCtx = null;
+    let mouthTexture = null;
+    let mouthMaterial = null;
+    let activeMouthValue = 0; // Number (0..60) or String ('e0'..'e129')
+
+    // Camera 4-Side Views State (Xem tứ phía)
+    let isTransitioningCam = false;
+    let targetCamPos = new THREE.Vector3();
+    let targetCamLookAt = new THREE.Vector3();
+
+    const CAMERA_PRESETS = {
+      front: { pos: new THREE.Vector3(0, 1.15, 2.3), target: new THREE.Vector3(0, 1.05, 0) },
+      back: { pos: new THREE.Vector3(0, 1.15, -2.3), target: new THREE.Vector3(0, 1.05, 0) },
+      left: { pos: new THREE.Vector3(-2.3, 1.15, 0), target: new THREE.Vector3(0, 1.05, 0) },
+      right: { pos: new THREE.Vector3(2.3, 1.15, 0), target: new THREE.Vector3(0, 1.05, 0) },
+      top: { pos: new THREE.Vector3(0, 3.2, 0.01), target: new THREE.Vector3(0, 0.8, 0) },
+      face: { pos: new THREE.Vector3(0, 1.18, 0.65), target: new THREE.Vector3(0, 1.15, 0) },
+      full: { pos: new THREE.Vector3(0, 0.95, 3.2), target: new THREE.Vector3(0, 0.7, 0) }
+    };
+
+    function setCameraView(viewKey) {
+      const p = CAMERA_PRESETS[viewKey];
+      if (!p) return;
+
+      document.querySelectorAll('.view-btn').forEach(b => {
+        if (b.getAttribute('data-view') === viewKey) {
+          b.classList.add('active');
+        } else if (b.id !== 'btn-auto-rotate') {
+          b.classList.remove('active');
+        }
+      });
+
+      targetCamPos.copy(p.pos);
+      targetCamLookAt.copy(p.target);
+      isTransitioningCam = true;
+      showToast(`CAMERA: ${viewKey.toUpperCase()}`);
+    }
+
+    // Timeline mapping dictionary: animName -> Array of { time, mouth, label }
+    let animationMouthTimelines = {
+      'CH0145_Formation_Pickup': [
+        { time: 0, mouth: 54, label: '0.00s: Bone Base (Smile/Talk)' },
+        { time: 0.33, mouth: 56, label: '0.33s: #56' },
+        { time: 2.79, mouth: 8, label: '2.46s: Bone Base (Smile/Talk)' },
+        { time: 7.53, mouth: 54, label: '7.53s: Bone Base (Smile/Talk)' }
+      ]
+    };
+
+    function showToast(msg) {
+      const toast = document.getElementById('studio-toast');
+      toast.textContent = msg;
+      toast.className = 'show';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.className = '';
+      }, 2000);
+    }
+
+    // 1. Initialize Three.js Scene (Exact Clone of index.html Lighting & Ground)
+    function initThreeScene() {
+      const container = document.getElementById('viewport-container');
+      const canvas = document.getElementById('webgl-canvas');
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x080b10);
+
+      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 1.15, 2.3);
+
+      controls = new THREE.OrbitControls(camera, canvas);
+      controls.target.set(0, 1.05, 0); // Focus on character face height
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 0.2;
+      controls.maxDistance = 12.0;
+      controls.minPolarAngle = 0.02; // Can view directly from top
+      controls.maxPolarAngle = Math.PI - 0.02; // Full spherical freedom to view from underneath
+      controls.autoRotate = false;
+      controls.autoRotateSpeed = 2.0;
+
+      // When user starts manual drag, disengage camera lerp and reset preset highlights
+      controls.addEventListener('start', () => {
+        isTransitioningCam = false;
+        document.querySelectorAll('.view-btn:not(#btn-auto-rotate)').forEach(b => b.classList.remove('active'));
+      });
+
+      // Lighting (Clone of index.html)
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(1, 4, 2);
+      scene.add(dirLight);
+
+      const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
+      scene.add(ambLight);
+
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+      scene.add(hemiLight);
+
+      // Emerald Debug Grid (Clone of three-helpers.js)
+      const grid = new THREE.GridHelper(10, 20, 0x10b981, 0x059669);
+      grid.position.y = 0.001;
+      scene.add(grid);
+
+      // Window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      // Initialize Dynamic Mouth Canvas
+      initMouthCanvas();
+    }
+
+    // Mouth ID Helper: handles Standard (0..60) and Extra UI ('e0'..'e129')
+    function parseMouthId(val) {
+      if (typeof val === 'string' && val.startsWith('e')) {
+        const num = parseInt(val.substring(1), 10);
+        const validIdx = isNaN(num) ? 0 : Math.max(0, Math.min(129, num));
+        return { isExtra: true, idx: validIdx, raw: `e${validIdx}` };
+      }
+      const num = parseInt(val, 10);
+      const validIdx = isNaN(num) ? 0 : Math.max(0, Math.min(60, num));
+      return { isExtra: false, idx: validIdx, raw: validIdx };
+    }
+
+    function getMouthPresetName(val) {
+      const parsed = parseMouthId(val);
+      if (parsed.isExtra) {
+        return `[UI] Extra #${parsed.idx}`;
+      }
+      const names = {
+        0: 'SMILE (Default)',
+        1: 'TALK (Open)',
+        2: 'SLIGHT OPEN',
+        3: 'O-SHAPE (Surprised)',
+        4: 'POUT',
+        5: 'SMIRK',
+        17: 'LAUGH (Wide)',
+        25: 'CRY (Mope)',
+        33: 'SHOUT (Scream)'
+      };
+      return names[parsed.idx] ? `#${String(parsed.idx).padStart(2, '0')} ${names[parsed.idx]}` : `#${String(parsed.idx).padStart(2, '0')}`;
+    }
+
+    // 2. Initialize 256x256 Offscreen Mouth Canvas & Texture (Dual Atlas)
+    function initMouthCanvas() {
+      mouthCanvas = document.createElement('canvas');
+      mouthCanvas.width = 256;
+      mouthCanvas.height = 256;
+      mouthCtx = mouthCanvas.getContext('2d');
+
+      mouthTexture = new THREE.CanvasTexture(mouthCanvas);
+      mouthTexture.flipY = false;
+
+      // Load Standard Atlas (Character_Mouth_High)
+      atlasStdImage = new Image();
+      atlasStdImage.crossOrigin = 'anonymous';
+      atlasStdImage.onload = () => {
+        atlasStdLoaded = true;
+        console.log('[Studio] Standard mouth atlas loaded:', atlasStdImage.width, atlasStdImage.height);
+        buildStandardMouthPalette();
+        renderActiveMouth(activeMouthValue);
+      };
+      atlasStdImage.src = ATLAS_STD_SRC;
+
+      // Load Extra Atlas (All_Mouths_Transparent.png - 130 shapes without pink background)
+      atlasExtraImage = new Image();
+      atlasExtraImage.crossOrigin = 'anonymous';
+      atlasExtraImage.onload = () => {
+        atlasExtraLoaded = true;
+        console.log('[Studio] Extra UI mouth atlas loaded:', atlasExtraImage.width, atlasExtraImage.height);
+        buildExtraMouthPalette();
+        renderActiveMouth(activeMouthValue);
+      };
+      atlasExtraImage.src = ATLAS_EXTRA_SRC;
+    }
+
+    // 3. Render any mouth shape (Standard 0..60 or Extra 'e0'..'e129') onto canvas
+    function renderActiveMouth(val) {
+      const parsed = parseMouthId(val);
+      activeMouthValue = parsed.raw;
+
+      if (!mouthCtx || !mouthTexture) return;
+
+      mouthCtx.clearRect(0, 0, 256, 256);
+
+      if (parsed.isExtra) {
+        // Extra UI Atlas: 1536x1536, 12x12 grid, 128x128 per cell.
+        // Scale cell by 0.25 (128 -> 32px) and center inside 64x64 slots:
+        // Top slot: (dx=16, dy=16, dw=32, dh=32)
+        // Bottom slot: (dx=16, dy=208, dw=32, dh=32)
+        if (atlasExtraLoaded && atlasExtraImage && atlasExtraImage.complete) {
+          const col = parsed.idx % 12;
+          const row = Math.floor(parsed.idx / 12);
+          const sx = col * 128;
+          const sy = row * 128;
+
+          mouthCtx.drawImage(atlasExtraImage, sx, sy, 128, 128, 16, 16, 32, 32);
+          mouthCtx.drawImage(atlasExtraImage, sx, sy, 128, 128, 16, 208, 32, 32);
+        }
+      } else {
+        // Standard HD Atlas: 2048x2048, 8x8 grid, 256x256 per cell.
+        if (atlasStdLoaded && atlasStdImage && atlasStdImage.complete) {
+          const col = parsed.idx % 8;
+          const row = Math.floor(parsed.idx / 8);
+          const sx = col * 256;
+          const sy = row * 256;
+
+          // Draw into top-left and bottom-left for dual flipY robustness
+          mouthCtx.drawImage(atlasStdImage, sx, sy, 256, 256, 0, 0, 64, 64);
+          mouthCtx.drawImage(atlasStdImage, sx, sy, 256, 256, 0, 192, 64, 64);
+        }
+      }
+
+      mouthTexture.needsUpdate = true;
+
+      // Update sidebar active mouth preview
+      const previewCanvas = document.getElementById('active-mouth-preview');
+      if (previewCanvas) {
+        const pCtx = previewCanvas.getContext('2d');
+        previewCanvas.width = 48;
+        previewCanvas.height = 48;
+        pCtx.clearRect(0, 0, 48, 48);
+
+        if (parsed.isExtra) {
+          if (atlasExtraLoaded && atlasExtraImage && atlasExtraImage.complete) {
+            const col = parsed.idx % 12;
+            const row = Math.floor(parsed.idx / 12);
+            pCtx.drawImage(atlasExtraImage, col * 128, row * 128, 128, 128, 0, 0, 48, 48);
+          }
+        } else {
+          if (atlasStdLoaded && atlasStdImage && atlasStdImage.complete) {
+            const col = parsed.idx % 8;
+            const row = Math.floor(parsed.idx / 8);
+            pCtx.drawImage(atlasStdImage, col * 256, row * 256, 256, 256, 0, 0, 48, 48);
+          }
+        }
+      }
+
+      const titleEl = document.getElementById('active-mouth-title');
+      const descEl = document.getElementById('active-mouth-desc');
+      if (titleEl) {
+        titleEl.textContent = parsed.isExtra ? `EXTRA #${parsed.idx}` : `#${String(parsed.idx).padStart(2, '0')}`;
+      }
+      if (descEl) {
+        descEl.textContent = parsed.isExtra ? `All_Mouths_UI (Khử nền #F6E2D9)` : getMouthPresetName(parsed.idx);
+      }
+
+      // Highlight active card across both standard and extra grids
+      document.querySelectorAll('.mouth-card').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-idx') === String(parsed.raw));
+      });
+    }
+
+    // 4. Load GLB Model & Setup Mouth Mesh Material Isolation
+    function loadGLBModel() {
+      const loader = new THREE.GLTFLoader();
+      loader.load(MODEL_SRC, (gltf) => {
+        modelRoot = gltf.scene;
+
+        // Scale x100 (Height = 1.36m)
+        modelRoot.scale.set(100, 100, 100);
+        modelRoot.position.set(0, 0, 0);
+
+        // Find and isolate mouth material (keeping eye mesh untouched)
+        modelRoot.traverse((child) => {
+          if (child.isMesh && child.material) {
+            const isFaceOutline = child.name.includes('Face_Outline') || (child.parent && child.parent.name.includes('Face_Outline'));
+            if (isFaceOutline) {
+              child.userData.isEyeMesh = true;
+              return; // KEEP EYE MESH UNTOUCHED
+            }
+
+            const idxCount = child.geometry?.index ? child.geometry.index.count : 0;
+            const currentMats = Array.isArray(child.material) ? child.material : [child.material];
+            const hasEyeMouth = currentMats.some(m => m && m.name === 'CH0145_EyeMouth');
+
+            if (idxCount === 96 || (hasEyeMouth && !isFaceOutline)) {
+              child.userData.isMouthMesh = true;
+
+              // Clone isolated material
+              const baseMat = Array.isArray(child.material) ? child.material[0] : child.material;
+              mouthMaterial = baseMat.clone();
+              mouthMaterial.name = 'CH0145_Mouth_Dynamic';
+              mouthMaterial.map = mouthTexture;
+              mouthMaterial.transparent = true;
+              mouthMaterial.opacity = 1.0;
+              mouthMaterial.depthWrite = true;
+              mouthMaterial.alphaTest = 0.02;
+              mouthMaterial.side = THREE.DoubleSide;
+              child.material = mouthMaterial;
+            }
+          }
+        });
+
+        // Apply initial Flat Shader
+        applyFlatShader(flatShader);
+
+        scene.add(modelRoot);
+
+        // Animation Mixer setup
+        mixer = new THREE.AnimationMixer(modelRoot);
+        animationClips = gltf.animations || [];
+        populateAnimationDropdown();
+
+        // Default to CH0145_Formation_Pickup if available
+        const pickupClip = animationClips.find(c => c.name === 'CH0145_Formation_Pickup') || animationClips[0];
+        if (pickupClip) {
+          selectAnimation(pickupClip.name);
+        }
+
+        showToast('GLB & ANIMATIONS LOADED');
+      });
+    }
+
+    // 5. Flat Shader Toggle
+    function applyFlatShader(isFlat) {
+      if (!modelRoot) return;
+      modelRoot.traverse((child) => {
+        if (child.isMesh && child.material) {
+          if (child.userData.isMouthMesh) return; // Keep mouth material intact
+
+          if (isFlat) {
+            if (!child.userData.origMat) child.userData.origMat = child.material;
+            const orig = child.userData.origMat;
+            const mats = Array.isArray(orig) ? orig : [orig];
+            const flats = mats.map(m => new THREE.MeshBasicMaterial({
+              map: m.map || null,
+              color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
+              transparent: m.transparent !== undefined ? m.transparent : false,
+              opacity: m.opacity !== undefined ? m.opacity : 1.0,
+              alphaTest: m.alphaTest || 0,
+              side: m.side !== undefined ? m.side : THREE.FrontSide
+            }));
+            child.material = Array.isArray(orig) ? flats : flats[0];
+          } else if (child.userData.origMat) {
+            child.material = child.userData.origMat;
+          }
+        }
+      });
+    }
+
+    // 6. Animation Selection & Timeline Scrubber Control
+    function populateAnimationDropdown() {
+      const select = document.getElementById('select-animation');
+      select.innerHTML = '';
+      animationClips.forEach((clip, i) => {
+        const opt = document.createElement('option');
+        opt.value = clip.name;
+        opt.textContent = `${clip.name} (${clip.duration.toFixed(2)}s)`;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', (e) => {
+        selectAnimation(e.target.value);
+      });
+    }
+
+    function selectAnimation(clipName) {
+      const clip = animationClips.find(c => c.name === clipName);
+      if (!clip || !mixer) return;
+
+      currentClip = clip;
+      maxDuration = clip.duration;
+      currentTime = 0.0;
+
+      if (currentAction) {
+        currentAction.stop();
+      }
+
+      currentAction = mixer.clipAction(clip);
+      currentAction.setLoop(isLooping ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+      currentAction.clampWhenFinished = true;
+      currentAction.play();
+      currentAction.time = 0;
+      mixer.update(0);
+
+      document.getElementById('select-animation').value = clipName;
+      document.getElementById('lbl-time-total').textContent = `${maxDuration.toFixed(2)}s`;
+      document.getElementById('lbl-frame-total').textContent = Math.round(maxDuration * 30);
+
+      // Load saved timeline for this animation from local storage
+      loadSavedTimelineForAnimation(clipName);
+
+      renderTimelineMarkers();
+      renderKeyframesList();
+      updateTimelineUI();
+    }
+
+    function setAnimationTime(t) {
+      if (!currentAction || !mixer) return;
+      currentTime = Math.max(0, Math.min(maxDuration, t));
+      if (typeof mixer.setTime === 'function') {
+        mixer.setTime(currentTime);
+      } else {
+        currentAction.time = currentTime;
+        mixer.update(0);
+      }
+      updateTimelineUI();
+      evaluateMouthAtTime(currentTime);
+    }
+
+    let selectedKeyframeIndex = 0;
+
+    // 7. Evaluate Mouth shape based on mapped keyframe ranges
+    function evaluateMouthAtTime(t) {
+      if (!currentClip) return;
+      const timeline = animationMouthTimelines[currentClip.name];
+      if (!timeline || timeline.length === 0) return;
+
+      // Find the keyframe that has the latest time <= t
+      let activeKF = timeline[0];
+      for (let i = 0; i < timeline.length; i++) {
+        if (t >= timeline[i].time - 0.001) {
+          activeKF = timeline[i];
+        } else {
+          break;
+        }
+      }
+
+      if (activeKF) {
+        if (String(activeKF.mouth) !== String(activeMouthValue)) {
+          renderActiveMouth(activeKF.mouth);
+        }
+        highlightActiveKeyframeInList(activeKF);
+      }
+    }
+
+    function highlightActiveKeyframeInList(activeKF) {
+      if (!currentClip) return;
+      const timeline = animationMouthTimelines[currentClip.name] || [];
+      const kfIdx = timeline.indexOf(activeKF);
+      if (kfIdx >= 0) {
+        selectedKeyframeIndex = kfIdx;
+      }
+
+      document.querySelectorAll('.keyframe-item').forEach(el => {
+        const itemTime = parseFloat(el.getAttribute('data-time'));
+        el.classList.toggle('current-active', Math.abs(itemTime - activeKF.time) < 0.01);
+      });
+
+      document.querySelectorAll('.mouth-card').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-idx') === String(activeKF.mouth));
+      });
+    }
+
+    function selectKeyframe(index) {
+      if (!currentClip) return;
+      const timeline = animationMouthTimelines[currentClip.name] || [];
+      if (index < 0 || index >= timeline.length) return;
+
+      selectedKeyframeIndex = index;
+      const kf = timeline[index];
+
+      // Jump animation time to keyframe time
+      setAnimationTime(kf.time);
+
+      // Render mouth of this keyframe
+      renderActiveMouth(kf.mouth);
+
+      // Highlight in list
+      document.querySelectorAll('.keyframe-item').forEach((el, idx) => {
+        el.classList.toggle('current-active', idx === index);
+      });
+
+      // Highlight in mouth palette
+      document.querySelectorAll('.mouth-card').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-idx') === String(kf.mouth));
+      });
+
+      const parsed = parseMouthId(kf.mouth);
+      const labelText = parsed.isExtra ? `Extra UI #${parsed.idx}` : `Mouth #${parsed.idx}`;
+      showToast(`SELECTED KEYFRAME: ${kf.time.toFixed(2)}s (${labelText})`);
+    }
+
+    // Apply mouth selection directly to currently selected keyframe or create one
+    function applyMouthSelection(mouthVal) {
+      const parsed = parseMouthId(mouthVal);
+      const targetVal = parsed.raw;
+
+      renderActiveMouth(targetVal);
+
+      // Highlight selected mouth card in palette
+      document.querySelectorAll('.mouth-card').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-idx') === String(targetVal));
+      });
+
+      if (!currentClip) return;
+      if (!animationMouthTimelines[currentClip.name]) {
+        animationMouthTimelines[currentClip.name] = [];
+      }
+      const timeline = animationMouthTimelines[currentClip.name];
+
+      // Identify target keyframe:
+      // Priority 1: If selectedKeyframeIndex points to a keyframe whose time is close to currentTime (<= 0.08s)
+      let targetKF = null;
+      if (selectedKeyframeIndex >= 0 && selectedKeyframeIndex < timeline.length) {
+        const curSel = timeline[selectedKeyframeIndex];
+        if (Math.abs(curSel.time - currentTime) <= 0.08) {
+          targetKF = curSel;
+        }
+      }
+
+      // Priority 2: Any keyframe in timeline within 0.08s of currentTime
+      if (!targetKF) {
+        targetKF = timeline.find(kf => Math.abs(kf.time - currentTime) <= 0.08);
+      }
+
+      const labelName = parsed.isExtra ? `Extra #${parsed.idx}` : getMouthPresetName(parsed.idx);
+
+      if (targetKF) {
+        targetKF.mouth = targetVal;
+        selectedKeyframeIndex = timeline.indexOf(targetKF);
+        showToast(`KEYFRAME ${targetKF.time.toFixed(2)}s -> ĐÃ LƯU ${labelName}`);
+      } else {
+        // Priority 3: Create new keyframe at currentTime
+        const t = Number(currentTime.toFixed(2));
+        targetKF = {
+          time: t,
+          mouth: targetVal,
+          label: `${t}s: ${labelName}`
+        };
+        timeline.push(targetKF);
+        timeline.sort((a, b) => a.time - b.time);
+        selectedKeyframeIndex = timeline.indexOf(targetKF);
+        showToast(`TẠO KEYFRAME MỚI ${t}s (${labelName})`);
+      }
+
+      // Re-render UI & Auto-Save!
+      renderTimelineMarkers();
+      renderKeyframesList();
+      saveTimelineToStorage(true);
+      updateJSONOutput();
+    }
+
+    // Auto-detect mouth keyframe timeline from bone_mouth tracks in the animation
+    function autoDetectKeyframesFromBone() {
+      if (!currentClip) {
+        showToast('CHƯA CHỌN ANIMATION!');
+        return;
+      }
+
+      // Search for bone_mouth tracks
+      const scaleTrack = currentClip.tracks.find(t =>
+        t.name.includes('bone_mouth') && t.name.includes('scale')
+      );
+      const rotTrack = currentClip.tracks.find(t =>
+        t.name.includes('bone_mouth') && (t.name.includes('quaternion') || t.name.includes('rotation'))
+      );
+      const posTrack = currentClip.tracks.find(t =>
+        t.name.includes('bone_mouth') && t.name.includes('position')
+      );
+
+      if (!scaleTrack && !rotTrack && !posTrack) {
+        if (!confirm(`Animation "${currentClip.name}" không tìm thấy khớp bone_mouth. Bạn có muốn tạo 1 mốc keyframe mặc định tại 0.00s (#00 SMILE) không?`)) {
+          return;
+        }
+        animationMouthTimelines[currentClip.name] = [
+          { time: 0.00, mouth: 0, label: '0.00s: Default (Smile)' }
+        ];
+        renderTimelineMarkers();
+        renderKeyframesList();
+        saveTimelineToStorage(true);
+        updateJSONOutput();
+        showToast('ĐÃ TẠO MỐC KEYFRAME MẶC ĐỊNH');
+        return;
+      }
+
+      const times = scaleTrack ? scaleTrack.times : (rotTrack ? rotTrack.times : posTrack.times);
+      const values = scaleTrack ? scaleTrack.values : null;
+
+      const detected = [];
+      let lastTime = -999;
+      let lastState = null;
+
+      for (let i = 0; i < times.length; i++) {
+        const rawT = times[i];
+        const t = Number(Math.min(maxDuration, rawT).toFixed(2));
+        let state = 'normal';
+        let suggestedMouth = 0;
+        let desc = 'Bone Base (Smile/Talk)';
+
+        if (values) {
+          const sx = values[i * 3 + 0];
+          const sy = values[i * 3 + 1];
+          const sz = values[i * 3 + 2];
+
+          if (sx >= 1.35) {
+            state = 'shout';
+            suggestedMouth = 33; // Shout / scream
+            desc = `Bone Peak ${sx.toFixed(2)}x (Shout/Scream)`;
+          } else if (sx >= 1.15) {
+            state = 'surprise';
+            suggestedMouth = 3; // O-shape
+            desc = `Bone Open ${sx.toFixed(2)}x (O-Shape/Surprise)`;
+          } else if (sy >= 0.90 || sz >= 0.90) {
+            state = 'cry';
+            suggestedMouth = 25; // Cry
+            desc = `Bone Stretch (Cry/Pout)`;
+          } else {
+            state = 'normal';
+            suggestedMouth = 0;
+            desc = 'Bone Base (Smile/Talk)';
+          }
+        }
+
+        if (i === 0) {
+          detected.push({
+            time: t,
+            mouth: suggestedMouth,
+            label: `${t.toFixed(2)}s: ${desc}`
+          });
+          lastTime = rawT;
+          lastState = state;
+        } else if (state !== lastState && (rawT - lastTime >= 0.20 || i === times.length - 1)) {
+          detected.push({
+            time: t,
+            mouth: suggestedMouth,
+            label: `${t.toFixed(2)}s: ${desc}`
+          });
+          lastTime = rawT;
+          lastState = state;
+        }
+      }
+
+      // Ensure at least 1 keyframe at 0.0s
+      if (detected.length === 0 || detected[0].time > 0.05) {
+        detected.unshift({ time: 0.00, mouth: 0, label: '0.00s: Start (Smile)' });
+      }
+
+      animationMouthTimelines[currentClip.name] = detected;
+      selectedKeyframeIndex = 0;
+
+      renderTimelineMarkers();
+      renderKeyframesList();
+      saveTimelineToStorage(true);
+      updateJSONOutput();
+      selectKeyframe(0);
+
+      if (detected.length <= 1) {
+        showToast(`KHỚP BONE_MOUTH GIỮ NGUYÊN (TẠO 1 KEY MẶC ĐỊNH)`);
+      } else {
+        showToast(`⚡ ĐÃ TỰ ĐỘNG BẮT ĐƯỢC ${detected.length} MỐC KEYFRAME TỪ BONE_MOUTH!`);
+      }
+    }
+
+    // 8. Render Keyframe Markers on Scrubber Track with Drag & Drop
+    let isDraggingKeyframe = false;
+    let draggedKF = null;
+
+    function renderTimelineMarkers() {
+      const container = document.getElementById('timeline-markers');
+      container.innerHTML = '';
+      if (!currentClip) return;
+
+      const timeline = animationMouthTimelines[currentClip.name] || [];
+      timeline.forEach((kf, idx) => {
+        const pct = (kf.time / maxDuration) * 100;
+        const marker = document.createElement('div');
+        marker.className = `kf-marker ${idx === selectedKeyframeIndex ? 'current-active' : ''}`;
+        marker.style.left = `${pct}%`;
+        marker.setAttribute('data-time', kf.time.toFixed(2));
+        marker.setAttribute('data-index', idx);
+
+        marker.innerHTML = `
+          <div class="kf-marker-pin"></div>
+          <div class="kf-marker-stem"></div>
+          <div class="kf-marker-tooltip">⏱ ${kf.time.toFixed(2)}s (F${Math.round(kf.time * 30)}) • #${kf.mouth}</div>
+        `;
+
+        attachMarkerDragListener(marker, kf);
+        container.appendChild(marker);
+      });
+    }
+
+    function attachMarkerDragListener(markerEl, kf) {
+      markerEl.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Pause animation while dragging
+        if (isPlaying) {
+          togglePlayPause();
+        }
+
+        isDraggingKeyframe = true;
+        draggedKF = kf;
+        markerEl.classList.add('dragging');
+        markerEl.setPointerCapture(e.pointerId);
+
+        const trackWrap = document.getElementById('timeline-track');
+        const startX = e.clientX;
+        let hasMoved = false;
+
+        const onPointerMove = (moveEvt) => {
+          if (!isDraggingKeyframe) return;
+          if (Math.abs(moveEvt.clientX - startX) > 2) {
+            hasMoved = true;
+          }
+
+          const currentRect = trackWrap.getBoundingClientRect();
+          const ratio = Math.max(0, Math.min(1, (moveEvt.clientX - currentRect.left) / currentRect.width));
+          const newTime = Number((ratio * maxDuration).toFixed(2));
+
+          kf.time = newTime;
+          markerEl.style.left = `${(newTime / maxDuration) * 100}%`;
+
+          // Update tooltip text
+          const tooltip = markerEl.querySelector('.kf-marker-tooltip');
+          if (tooltip) {
+            tooltip.textContent = `⏱ ${newTime.toFixed(2)}s (F${Math.round(newTime * 30)}) • #${kf.mouth}`;
+          }
+
+          // Real-time animation preview
+          setAnimationTime(newTime);
+        };
+
+        const onPointerUp = (upEvt) => {
+          if (!isDraggingKeyframe) return;
+          isDraggingKeyframe = false;
+          draggedKF = null;
+          markerEl.classList.remove('dragging');
+
+          try {
+            markerEl.releasePointerCapture(upEvt.pointerId);
+          } catch (err) { }
+
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+
+          const timeline = animationMouthTimelines[currentClip.name] || [];
+          if (!hasMoved) {
+            // Clicked without dragging: select this keyframe
+            selectKeyframe(timeline.indexOf(kf));
+          } else {
+            // Dragged: re-sort timeline and auto-save
+            timeline.sort((a, b) => a.time - b.time);
+            selectedKeyframeIndex = timeline.indexOf(kf);
+
+            renderTimelineMarkers();
+            renderKeyframesList();
+            saveTimelineToStorage(true);
+            updateJSONOutput();
+            showToast(`KEYFRAME DỜI ĐẾN ${kf.time.toFixed(2)}s (F${Math.round(kf.time * 30)})`);
+          }
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      });
+    }
+
+    // 9. Render Keyframes List in Sidebar
+    function renderKeyframesList() {
+      const container = document.getElementById('keyframes-container');
+      container.innerHTML = '';
+      if (!currentClip) return;
+
+      const timeline = animationMouthTimelines[currentClip.name] || [];
+      timeline.sort((a, b) => a.time - b.time);
+
+      timeline.forEach((kf, i) => {
+        const isSelected = (i === selectedKeyframeIndex);
+        const row = document.createElement('div');
+        row.className = `keyframe-item ${isSelected ? 'current-active' : ''}`;
+        row.setAttribute('data-time', kf.time.toFixed(2));
+        row.setAttribute('data-index', i);
+
+        // Build mouth options grouped into Standard HD (61) and Extra UI (130)
+        let optionsHtml = '<optgroup label="Standard HD Mouths (61)">';
+        for (let m = 0; m <= 60; m++) {
+          const optLabel = getMouthPresetName(m);
+          const isSel = String(kf.mouth) === String(m);
+          optionsHtml += `<option value="${m}" ${isSel ? 'selected' : ''}>${optLabel}</option>`;
+        }
+        optionsHtml += '</optgroup><optgroup label="✨ Extra UI Mouths (130)">';
+        for (let m = 0; m < 130; m++) {
+          const eVal = `e${m}`;
+          const isSel = String(kf.mouth) === eVal;
+          optionsHtml += `<option value="${eVal}" ${isSel ? 'selected' : ''}>Extra UI #${m}</option>`;
+        }
+        optionsHtml += '</optgroup>';
+
+        row.innerHTML = `
+          <div class="kf-header-row">
+            <span class="keyframe-time">⏱ ${kf.time.toFixed(2)}s <span style="font-size:9px;color:var(--text-muted);">(F${Math.round(kf.time * 30)})</span></span>
+            <div class="keyframe-actions">
+              <button class="btn btn-kf-jump" title="Nhảy tới keyframe này" style="padding:2px 8px; font-size:9px; color:var(--accent-cyan);">GO</button>
+              <button class="btn btn-kf-del" title="Xóa keyframe này" style="padding:2px 6px; font-size:9px; color:var(--accent-pink);">✕</button>
+            </div>
+          </div>
+          <div class="keyframe-mouth">
+            <canvas class="kf-mini-thumb" width="32" height="32" style="width:32px; height:32px; border-radius:3px; background:#1e293b; border:1px solid rgba(0,255,200,0.3); flex-shrink:0; image-rendering:pixelated;"></canvas>
+            <select class="kf-mouth-select">
+              ${optionsHtml}
+            </select>
+          </div>
+          <input type="text" class="kf-label-input" value="${kf.label || ''}" placeholder="Ghi chú (vd: Mếu máo, cười...)" style="width:100%; height:24px; padding:2px 6px; font-size:10px; margin-top:2px;">
+        `;
+
+        // Render mini thumb
+        const miniCanvas = row.querySelector('.kf-mini-thumb');
+        if (miniCanvas) {
+          const mCtx = miniCanvas.getContext('2d');
+          const parsed = parseMouthId(kf.mouth);
+          if (parsed.isExtra) {
+            if (atlasExtraLoaded && atlasExtraImage && atlasExtraImage.complete) {
+              const col = parsed.idx % 12;
+              const rowIdx = Math.floor(parsed.idx / 12);
+              mCtx.drawImage(atlasExtraImage, col * 128, rowIdx * 128, 128, 128, 0, 0, 32, 32);
+            }
+          } else {
+            if (atlasStdLoaded && atlasStdImage && atlasStdImage.complete) {
+              const col = parsed.idx % 8;
+              const rowIdx = Math.floor(parsed.idx / 8);
+              mCtx.drawImage(atlasStdImage, col * 256, rowIdx * 256, 256, 256, 0, 0, 32, 32);
+            }
+          }
+        }
+
+        // Row Click selects this keyframe
+        row.addEventListener('click', (e) => {
+          if (['BUTTON', 'SELECT', 'INPUT'].includes(e.target.tagName)) return;
+          selectKeyframe(i);
+        });
+
+        // Jump button
+        row.querySelector('.btn-kf-jump').addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectKeyframe(i);
+        });
+
+        // Delete button
+        row.querySelector('.btn-kf-del').addEventListener('click', (e) => {
+          e.stopPropagation();
+          timeline.splice(i, 1);
+          if (selectedKeyframeIndex >= timeline.length) {
+            selectedKeyframeIndex = Math.max(0, timeline.length - 1);
+          }
+          renderTimelineMarkers();
+          renderKeyframesList();
+          saveTimelineToStorage(true);
+          updateJSONOutput();
+          showToast(`ĐÃ XÓA KEYFRAME TẠI ${kf.time.toFixed(2)}s`);
+        });
+
+        // Mouth Select changed directly in row
+        row.querySelector('.kf-mouth-select').addEventListener('change', (e) => {
+          const newMouth = e.target.value;
+          selectedKeyframeIndex = i;
+          setAnimationTime(kf.time);
+          applyMouthSelection(newMouth);
+        });
+
+        // Label input changed
+        row.querySelector('.kf-label-input').addEventListener('change', (e) => {
+          kf.label = e.target.value;
+          saveTimelineToStorage(true);
+          updateJSONOutput();
+        });
+
+        container.appendChild(row);
+      });
+
+      updateJSONOutput();
+    }
+
+    // 10. Update Bottom Timeline UI
+    function updateTimelineUI() {
+      document.getElementById('lbl-time-cur').textContent = `${currentTime.toFixed(2)}s`;
+      document.getElementById('lbl-frame-cur').textContent = Math.round(currentTime * 30);
+
+      const pct = maxDuration > 0 ? (currentTime / maxDuration) * 100 : 0;
+      document.getElementById('timeline-progress').style.width = `${pct}%`;
+      document.getElementById('timeline-slider').value = pct;
+    }
+
+    // 11. Build Mouth Shapes Palettes (Standard HD 61 + Extra UI 130)
+    function buildStandardMouthPalette() {
+      const container = document.getElementById('mouth-grid-std');
+      if (!container) return;
+      container.innerHTML = '';
+
+      for (let i = 0; i <= 60; i++) {
+        const card = document.createElement('div');
+        card.className = `mouth-card ${String(i) === String(activeMouthValue) ? 'active' : ''}`;
+        card.setAttribute('data-idx', i);
+
+        const c = document.createElement('canvas');
+        c.className = 'mouth-preview-canvas';
+        c.width = 48;
+        c.height = 48;
+        const ctx = c.getContext('2d');
+        if (atlasStdLoaded && atlasStdImage && atlasStdImage.complete) {
+          const col = i % 8;
+          const row = Math.floor(i / 8);
+          ctx.drawImage(atlasStdImage, col * 256, row * 256, 256, 256, 0, 0, 48, 48);
+        }
+
+        const lbl = document.createElement('span');
+        lbl.className = 'mouth-card-label';
+        lbl.textContent = `#${String(i).padStart(2, '0')}`;
+
+        card.appendChild(c);
+        card.appendChild(lbl);
+
+        card.addEventListener('click', () => {
+          applyMouthSelection(i);
+        });
+
+        container.appendChild(card);
+      }
+    }
+
+    function buildExtraMouthPalette() {
+      const container = document.getElementById('mouth-grid-extra');
+      if (!container) return;
+      container.innerHTML = '';
+
+      for (let i = 0; i < 130; i++) {
+        const eVal = `e${i}`;
+        const card = document.createElement('div');
+        card.className = `mouth-card ${String(activeMouthValue) === eVal ? 'active' : ''}`;
+        card.setAttribute('data-idx', eVal);
+
+        const c = document.createElement('canvas');
+        c.className = 'mouth-preview-canvas';
+        c.width = 48;
+        c.height = 48;
+        const ctx = c.getContext('2d');
+        if (atlasExtraLoaded && atlasExtraImage && atlasExtraImage.complete) {
+          const col = i % 12;
+          const row = Math.floor(i / 12);
+          ctx.drawImage(atlasExtraImage, col * 128, row * 128, 128, 128, 0, 0, 48, 48);
+        }
+
+        const lbl = document.createElement('span');
+        lbl.className = 'mouth-card-label';
+        lbl.textContent = `E#${i}`;
+        lbl.style.color = '#38bdf8';
+
+        card.appendChild(c);
+        card.appendChild(lbl);
+
+        card.addEventListener('click', () => {
+          applyMouthSelection(eVal);
+        });
+
+        container.appendChild(card);
+      }
+    }
+
+    // 12. Local Storage & JSON Persistence
+    function updateJSONOutput() {
+      if (!currentClip) return;
+      const timeline = animationMouthTimelines[currentClip.name] || [];
+      const exportObj = {
+        animation: currentClip.name,
+        duration: Number(maxDuration.toFixed(3)),
+        totalFrames: Math.round(maxDuration * 30),
+        mouthTimeline: timeline.map(kf => ({
+          time: Number(kf.time.toFixed(2)),
+          frame: Math.round(kf.time * 30),
+          mouth: kf.mouth,
+          label: kf.label || `Mouth #${kf.mouth}`
+        }))
+      };
+
+      document.getElementById('json-output').value = JSON.stringify(exportObj, null, 2);
+    }
+
+    function saveTimelineToStorage(silent = false) {
+      if (!currentClip) return;
+      localStorage.setItem(`miyu_mouth_${currentClip.name}`, JSON.stringify(animationMouthTimelines[currentClip.name] || []));
+      if (!silent) {
+        showToast('SAVED TO LOCAL STORAGE');
+      }
+    }
+
+    function loadSavedTimelineForAnimation(clipName) {
+      const saved = localStorage.getItem(`miyu_mouth_${clipName}`);
+      if (saved) {
+        try {
+          animationMouthTimelines[clipName] = JSON.parse(saved);
+        } catch (e) { }
+      }
+    }
+
+    function togglePlayPause() {
+      const btnPlay = document.getElementById('btn-play-pause');
+      isPlaying = !isPlaying;
+      btnPlay.classList.toggle('active', isPlaying);
+      btnPlay.innerHTML = isPlaying ? '<span>⏸ PAUSE</span>' : '<span>▶ PLAY</span>';
+      showToast(isPlaying ? 'PLAYING ANIMATION (SPACE)' : 'PAUSED (SPACE)');
+    }
+
+    // 13. Event Listeners Setup
+    function attachEventListeners() {
+      // Play / Pause
+      const btnPlay = document.getElementById('btn-play-pause');
+      btnPlay.addEventListener('click', () => {
+        togglePlayPause();
+      });
+
+      // Step -1F / +1F
+      document.getElementById('btn-step-back').addEventListener('click', () => {
+        if (isPlaying) togglePlayPause();
+        setAnimationTime(currentTime - 1 / 30);
+      });
+
+      document.getElementById('btn-step-fwd').addEventListener('click', () => {
+        if (isPlaying) togglePlayPause();
+        setAnimationTime(currentTime + 1 / 30);
+      });
+
+      // Loop Toggle
+      const btnLoop = document.getElementById('btn-loop');
+      btnLoop.addEventListener('click', () => {
+        isLooping = !isLooping;
+        btnLoop.classList.toggle('active', isLooping);
+        btnLoop.querySelector('span').textContent = `LOOP: ${isLooping ? 'ON' : 'OFF'}`;
+        if (currentAction) {
+          currentAction.setLoop(isLooping ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+        }
+      });
+
+      // Speed Buttons
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          playbackSpeed = parseFloat(e.target.getAttribute('data-speed'));
+        });
+      });
+
+      // Timeline Scrubber Drag
+      const slider = document.getElementById('timeline-slider');
+      slider.addEventListener('input', (e) => {
+        if (isPlaying) {
+          togglePlayPause();
+        }
+        const pct = parseFloat(e.target.value);
+        setAnimationTime((pct / 100) * maxDuration);
+      });
+
+      // Add Keyframe button
+      document.getElementById('btn-add-keyframe').addEventListener('click', () => {
+        if (!currentClip) return;
+        applyMouthSelection(activeMouthValue);
+      });
+
+      // Auto-Detect from Bone button
+      document.getElementById('btn-auto-detect').addEventListener('click', () => {
+        autoDetectKeyframesFromBone();
+      });
+
+      // Preset Mouth Buttons
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          applyMouthSelection(idx);
+        });
+      });
+
+      // Shader Toggle
+      document.getElementById('btn-toggle-shader').addEventListener('click', () => {
+        flatShader = !flatShader;
+        document.getElementById('lbl-shader').textContent = flatShader ? 'FLAT' : 'PBR';
+        applyFlatShader(flatShader);
+        showToast(`SHADER: ${flatShader ? 'FLAT UNLIT' : 'PBR'}`);
+      });
+
+      // 4-Side Camera View Preset Buttons (Xem tứ phía)
+      document.querySelectorAll('.view-btn[data-view]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const viewKey = e.currentTarget.getAttribute('data-view');
+          setCameraView(viewKey);
+        });
+      });
+
+      // 360 Auto-Rotate Toggle Button
+      const btnAuto = document.getElementById('btn-auto-rotate');
+      if (btnAuto) {
+        btnAuto.addEventListener('click', () => {
+          controls.autoRotate = !controls.autoRotate;
+          btnAuto.classList.toggle('active', controls.autoRotate);
+          showToast(`360° AUTO ROTATE: ${controls.autoRotate ? 'ON' : 'OFF'}`);
+        });
+      }
+
+      // Recenter / Focus Face
+      document.getElementById('btn-recenter-cam').addEventListener('click', () => {
+        setCameraView('face');
+      });
+
+      // Global Keyboard Shortcuts (Space chạy animation & Xem tứ phía)
+      window.addEventListener('keydown', (e) => {
+        // Only ignore text typing fields, NOT sliders or buttons!
+        const isTextInput = (e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'number')) || e.target.tagName === 'TEXTAREA';
+        if (isTextInput) return;
+
+        if (e.code === 'Space' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          // Remove focus from any button/slider so Space won't trigger default browser button behavior
+          if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+          }
+          togglePlayPause();
+        } else if (e.key === '1') {
+          setCameraView('front');
+        } else if (e.key === '2') {
+          setCameraView('back');
+        } else if (e.key === '3') {
+          setCameraView('left');
+        } else if (e.key === '4') {
+          setCameraView('right');
+        } else if (e.key === '5') {
+          setCameraView('top');
+        } else if (e.key === 'f' || e.key === 'F') {
+          setCameraView('face');
+        } else if (e.key === 'b' || e.key === 'B') {
+          setCameraView('full');
+        } else if (e.key === 'r' || e.key === 'R') {
+          if (btnAuto) btnAuto.click();
+        }
+      });
+
+      // Sidebar Tabs switching
+      document.querySelectorAll('.sidebar-tab-btn').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          document.querySelectorAll('.sidebar-tab-btn').forEach(t => t.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+
+          const tabKey = e.currentTarget.getAttribute('data-tab');
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+          document.getElementById(`tab-${tabKey}`).classList.remove('hidden');
+        });
+      });
+
+      // Mouth Palette Subtabs switching (Standard HD 61 vs Extra UI 130)
+      const subtabStd = document.getElementById('subtab-std');
+      const subtabExtra = document.getElementById('subtab-extra');
+      const sectionStd = document.getElementById('section-palette-std');
+      const sectionExtra = document.getElementById('section-palette-extra');
+
+      if (subtabStd && subtabExtra) {
+        subtabStd.addEventListener('click', () => {
+          subtabStd.classList.add('active');
+          subtabExtra.classList.remove('active');
+          sectionStd.classList.remove('hidden');
+          sectionExtra.classList.add('hidden');
+        });
+
+        subtabExtra.addEventListener('click', () => {
+          subtabExtra.classList.add('active');
+          subtabStd.classList.remove('active');
+          sectionExtra.classList.remove('hidden');
+          sectionStd.classList.add('hidden');
+        });
+      }
+
+      // Copy JSON
+      document.getElementById('btn-copy-json').addEventListener('click', () => {
+        const text = document.getElementById('json-output').value;
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('COPIED JSON TO CLIPBOARD!');
+        });
+      });
+
+      // Save Storage
+      document.getElementById('btn-save-storage').addEventListener('click', () => {
+        saveTimelineToStorage();
+      });
+
+      // Import JSON
+      document.getElementById('btn-import-json').addEventListener('click', () => {
+        const str = prompt('Paste keyframe JSON data:');
+        if (str && currentClip) {
+          try {
+            const data = JSON.parse(str);
+            if (Array.isArray(data.mouthTimeline)) {
+              animationMouthTimelines[currentClip.name] = data.mouthTimeline.map(kf => ({
+                time: kf.time,
+                mouth: kf.mouth,
+                label: kf.label
+              }));
+              renderTimelineMarkers();
+              renderKeyframesList();
+              showToast('IMPORTED JSON SUCCESSFULLY');
+            }
+          } catch (e) {
+            alert('Invalid JSON format!');
+          }
+        }
+      });
+    }
+
+    // 14. Animation Frame Loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+
+      if (isPlaying && mixer && currentAction) {
+        currentTime += delta * playbackSpeed;
+        if (currentTime >= maxDuration) {
+          if (isLooping) {
+            currentTime = currentTime % maxDuration;
+          } else {
+            currentTime = maxDuration;
+            isPlaying = false;
+            document.getElementById('btn-play-pause').classList.remove('active');
+            document.getElementById('btn-play-pause').innerHTML = '<span>▶ PLAY</span>';
+          }
+        }
+        if (typeof mixer.setTime === 'function') {
+          mixer.setTime(currentTime);
+        } else {
+          currentAction.time = currentTime;
+          mixer.update(0);
+        }
+        updateTimelineUI();
+        evaluateMouthAtTime(currentTime);
+      }
+
+      // Smooth Camera View Interpolation
+      if (isTransitioningCam) {
+        camera.position.lerp(targetCamPos, 0.12);
+        controls.target.lerp(targetCamLookAt, 0.12);
+        if (camera.position.distanceTo(targetCamPos) < 0.005 && controls.target.distanceTo(targetCamLookAt) < 0.005) {
+          camera.position.copy(targetCamPos);
+          controls.target.copy(targetCamLookAt);
+          isTransitioningCam = false;
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeScene();
+      loadGLBModel();
+      attachEventListeners();
+      animate();
+    });
+  </script>
+</body>
+
+</html>

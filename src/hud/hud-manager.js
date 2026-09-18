@@ -13,13 +13,14 @@ import {
 import { ConsoleManager } from './console-manager';
 import { getHUDHTMLTemplate } from './hud-ui';
 
-// Ensure custom A-Frame component is registered
+// Ensure custom A-Frame components are registered
 import '../components/three-ar-drag';
+import '../components/model-animator';
 
 export class PixelHUDManager {
   constructor() {
     this.models = MODEL_CONFIGS;
-    this.activeModelId = 'kazusa';
+    this.activeModelId = (this.models && this.models.length > 0) ? this.models[0].id : null;
     this.hudVisible = true;
     this.drawerOpen = false;
     this.activeTab = 'models';
@@ -83,12 +84,32 @@ export class PixelHUDManager {
 
     overlay.innerHTML = getHUDHTMLTemplate();
 
+    this.populateAssetsTag();
     this.attachEventListeners();
     this.renderModelsList();
     this.resetAutoHideTimer();
     this.showToast('HUD & DUAL DEBUG GRIDS READY', 'blue');
     this.setupAFrameListeners();
     this.initDebugGrids();
+  }
+
+  populateAssetsTag() {
+    const scene = document.querySelector('a-scene');
+    if (!scene) return;
+    let assets = scene.querySelector('a-assets');
+    if (!assets) {
+      assets = document.createElement('a-assets');
+      scene.prepend(assets);
+    }
+    this.models.forEach((model) => {
+      const assetId = `model-${model.id}`;
+      if (!document.getElementById(assetId)) {
+        const item = document.createElement('a-asset-item');
+        item.setAttribute('id', assetId);
+        item.setAttribute('src', model.src);
+        assets.appendChild(item);
+      }
+    });
   }
 
   initDebugGrids() {
@@ -259,6 +280,22 @@ export class PixelHUDManager {
       this.transformState.rotY = val;
       document.getElementById('val-rot-y').textContent = `${val}°`;
       this.applyTransformToActive();
+    });
+
+    const inputMouth = document.getElementById('input-mouth-shape');
+    if (inputMouth) {
+      inputMouth.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        this.setMouthShape(val);
+      });
+    }
+
+    document.querySelectorAll('.quick-mouth-presets button').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const val = parseInt(e.currentTarget.getAttribute('data-mouth'), 10);
+        if (inputMouth) inputMouth.value = val;
+        this.setMouthShape(val);
+      });
     });
 
     document.getElementById('btn-toggle-lights').addEventListener('click', () => {
@@ -455,6 +492,23 @@ export class PixelHUDManager {
     entity.setAttribute('xrextras-one-finger-rotate', 'factor: 6');
     entity.setAttribute('xrextras-two-finger-rotate', 'factor: 5');
 
+    if (model.animations) {
+      const mouthCfg = model.mouthConfig || {};
+      const timelines = (model.animations && model.animations.timelines) || {};
+      entity.setAttribute('model-animator', {
+        idleList: model.animations.idleList,
+        defaultIdle: model.animations.defaultIdle,
+        pickupClip: model.animations.pickup,
+        atlasSrc: mouthCfg.atlasSrc || './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
+        atlasExtraSrc: mouthCfg.atlasExtraSrc || './assets/common/mouths/All_Mouths_Transparent.png',
+        idleMouthIndex: mouthCfg.idleMouthIndex ?? 0,
+        pickupMouthIndex: mouthCfg.pickupMouthIndex ?? 33,
+        mouthStyle: mouthCfg.mouthStyle || 'dynamic',
+        currentMouthIndex: mouthCfg.currentMouthIndex ?? 0,
+        mouthTimelines: JSON.stringify(timelines)
+      });
+    }
+
     entity.addEventListener('model-loaded', () => {
       if (this.flatShader && entity.object3D) {
         applyFlatShaderToMesh(entity.object3D, true);
@@ -549,6 +603,32 @@ export class PixelHUDManager {
       activeModel.entityEl.setAttribute('rotation', `0 ${this.transformState.rotY} 0`);
 
       this.updateMatrixDisplay(this.transformState.posX, this.transformState.posY, this.transformState.posZ);
+    }
+  }
+
+  setMouthShape(val) {
+    const lbl = document.getElementById('val-mouth-shape');
+    const presetNames = {
+      0: '#00 SMILE',
+      1: '#01 TALK',
+      2: '#02 SMILE-TEETH',
+      3: '#03 O-SHAPE',
+      4: '#04 HAPPY',
+      17: '#17 LAUGH',
+      25: '#25 CRY',
+      33: '#33 SHOUT'
+    };
+    if (lbl) {
+      lbl.textContent = presetNames[val] || `#${String(val).padStart(2, '0')}`;
+    }
+    const activeModel = this.models.find(m => m.placed);
+    const entity = (activeModel && activeModel.entityEl) || document.querySelector('.spawned-object');
+    if (entity && entity.components) {
+      const animator = entity.components['model-animator'];
+      if (animator) {
+        animator.data.mouthStyle = 'fixed';
+        animator.setMouthShapeIndex(val);
+      }
     }
   }
 

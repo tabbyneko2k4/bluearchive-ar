@@ -218,6 +218,10 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['three-ar-drag']) {
           this.dragOffset.copy(this.planeIntersect).sub(new THREE.Vector3(objPos.x, this.basePosY, objPos.z));
         }
 
+        if (this.el) {
+          this.el.emit('dragstart');
+        }
+
         if (window.pixelHUD) {
           window.pixelHUD.showToast('DRAGGING OBJECT (ROTATE & PINCH PAUSED)', 'blue');
         }
@@ -266,6 +270,10 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['three-ar-drag']) {
 
         // Restore rotate and pinch scale gestures
         this.enableGestures();
+
+        if (this.el) {
+          this.el.emit('dragend');
+        }
 
         if (window.pixelHUD) {
           window.pixelHUD.showToast('OBJECT DROPPED & PLACED', 'green');

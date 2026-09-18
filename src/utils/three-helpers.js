@@ -69,6 +69,11 @@ export function applyFlatShaderToMesh(object3D, isFlat = true) {
 
   object3D.traverse((child) => {
     if (child.isMesh && child.material) {
+      // Skip ONLY the dedicated dynamic mouth mesh (preserve eye shader on Face_Outline!)
+      if (child.userData.isMouthMesh || (child.material && child.material.name === 'CH0145_Mouth_Dynamic')) {
+        return;
+      }
+
       if (isFlat) {
         if (!child.userData.originalMaterial) {
           child.userData.originalMaterial = child.material;

@@ -131,6 +131,21 @@ export function getHUDHTMLTemplate() {
             </div>
             <input type="range" class="pixel-range" id="input-rot-y" min="0" max="360" step="15" value="0">
           </div>
+
+          <div class="control-group">
+            <div class="control-header">
+              <span class="control-label">MOUTH SHAPE (0-60)</span>
+              <span class="control-value" id="val-mouth-shape">#00 SMILE</span>
+            </div>
+            <input type="range" class="pixel-range" id="input-mouth-shape" min="0" max="60" step="1" value="0">
+            <div class="quick-mouth-presets" style="display: flex; gap: 4px; margin-top: 6px;">
+              <button class="pixel-btn-sm" data-mouth="0" style="flex: 1; font-size: 8px; padding: 4px 0; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; cursor: pointer;">#0 IDLE</button>
+              <button class="pixel-btn-sm" data-mouth="1" style="flex: 1; font-size: 8px; padding: 4px 0; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; cursor: pointer;">#1 TALK</button>
+              <button class="pixel-btn-sm" data-mouth="3" style="flex: 1; font-size: 8px; padding: 4px 0; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; cursor: pointer;">#3 O</button>
+              <button class="pixel-btn-sm" data-mouth="17" style="flex: 1; font-size: 8px; padding: 4px 0; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; cursor: pointer;">#17 LAUGH</button>
+              <button class="pixel-btn-sm" data-mouth="33" style="flex: 1; font-size: 8px; padding: 4px 0; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; cursor: pointer;">#33 SHOUT</button>
+            </div>
+          </div>
         </div>
 
         <!-- Panel 3: Lights -->
@@ -166,6 +181,12 @@ export function getHUDHTMLTemplate() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg>
               RECENTER AR
             </button>
+          </div>
+          <div class="action-grid" style="margin-top: 8px;">
+            <a href="./debug-studio.html" target="_blank" class="panel-action-btn" style="grid-column: span 2; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; border-color: #00ffc8; color: #00ffc8; font-weight: 600;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              OPEN DEBUG STUDIO ↗
+            </a>
           </div>
           <div class="action-grid" style="margin-top: 8px;">
             <button class="panel-action-btn danger" id="btn-reset-all" style="grid-column: span 2;">

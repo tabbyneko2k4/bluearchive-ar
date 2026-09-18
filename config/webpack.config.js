@@ -44,6 +44,12 @@ const config = {
       scriptLoading: 'blocking',
       inject: false,
     }),
+    new HtmlWebpackPlugin({
+      template: path.join(srcPath, 'debug-studio.html'),
+      filename: 'debug-studio.html',
+      scriptLoading: 'blocking',
+      inject: false,
+    }),
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -86,6 +92,11 @@ const config = {
     compress: true,
     hot: true,
     liveReload: false,
+    historyApiFallback: {
+      rewrites: [
+        { from: /^\/debug-studio/, to: '/debug-studio.html' },
+      ],
+    },
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
