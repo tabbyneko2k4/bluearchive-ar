@@ -687,6 +687,133 @@
       #studio-toast.show {
         opacity: 1;
       }
+
+      /* Drag & Drop Viewport Highlight */
+      #viewport-container.drag-over {
+        box-shadow: inset 0 0 0 3px var(--accent-cyan) !important;
+      }
+      .drop-banner {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 11, 16, 0.85);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border: 2px dashed var(--accent-cyan);
+        margin: 16px;
+        border-radius: 8px;
+        z-index: 50;
+        pointer-events: none;
+      }
+      #viewport-container.drag-over .drop-banner {
+        display: flex;
+      }
+      .drop-banner span {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        letter-spacing: 1px;
+        text-shadow: 0 0 10px rgba(0, 255, 200, 0.5);
+      }
+
+      /* Model Layers Inspector Styles */
+      .layers-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 480px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .layer-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #0f172a;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 6px 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        gap: 6px;
+        transition: all 0.15s ease;
+      }
+      .layer-item:hover {
+        border-color: rgba(0, 255, 200, 0.4);
+        background: rgba(15, 23, 42, 0.9);
+      }
+      .layer-item.hidden-mesh {
+        opacity: 0.45;
+        background: #080c14;
+      }
+      .layer-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .layer-name {
+        color: #fff;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .layer-stats {
+        font-size: 9px;
+        color: var(--text-muted);
+      }
+      .layer-badge {
+        font-size: 8px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .badge-mouth { background: rgba(0, 255, 200, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 255, 200, 0.3); }
+      .badge-eye { background: rgba(234, 179, 8, 0.15); color: var(--accent-yellow); border: 1px solid rgba(234, 179, 8, 0.3); }
+      .badge-skinned { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+      /* Animation Roles & Badges */
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 3px;
+      }
+      .role-badge.default-idle { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+      .role-badge.idle { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+      .role-badge.pickup { background: rgba(244, 63, 94, 0.2); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.4); }
+      .role-badge.none { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.2); }
+      .anim-tag-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #1e293b;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #fff;
+      }
+      .anim-tag-pill .remove-btn {
+        cursor: pointer;
+        color: var(--accent-pink);
+        font-weight: 700;
+        padding: 0 2px;
+      }
+      .anim-tag-pill .remove-btn:hover {
+        color: #fff;
+      }
   </style>
 </head>
 
@@ -697,12 +824,20 @@
     <header>
       <div class="brand">
         <span class="brand-tag">3D STUDIO</span>
-        <span class="brand-title">MIYU // ANIMATION & MOUTH KEYFRAME TIMELINE</span>
+        <span class="brand-title" id="lbl-studio-title">MIYU // ANIMATION & MOUTH SYNC</span>
       </div>
 
       <div class="header-actions">
-        <label style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted);">ANIMATION:</label>
-        <select id="select-animation" style="width: 240px;"></select>
+        <select id="select-model-source" style="width: 160px;">
+          <option value="default_miyu">Miyu (CH0145) [Built-in]</option>
+        </select>
+        <button class="btn" id="btn-load-glb" title="Chọn file GLB/GLTF từ máy tính">
+          <span style="color: var(--accent-cyan); font-weight: 700;">📁 OPEN GLB</span>
+        </button>
+        <input type="file" id="file-glb-input" accept=".glb,.gltf" style="display: none;">
+
+        <label style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); margin-left: 4px;">ANIMATION:</label>
+        <select id="select-animation" style="width: 210px;"></select>
 
         <button class="btn" id="btn-toggle-shader" title="Toggle between Flat Unlit & PBR">
           <span>SHADER: <strong id="lbl-shader" style="color: var(--accent-cyan);">FLAT</strong></span>
@@ -723,6 +858,9 @@
       <!-- 3D Viewport -->
       <div id="viewport-container">
         <canvas id="webgl-canvas"></canvas>
+        <div class="drop-banner" id="drop-banner">
+          <span>⬇ DROP .GLB / .GLTF FILE HERE TO LOAD ⬇</span>
+        </div>
 
         <!-- Floating View Angle Selector Dock (Xem tứ phía) -->
         <div class="viewport-view-bar">
@@ -755,9 +893,11 @@
       <div id="sidebar">
         <!-- Tabs -->
         <div class="sidebar-tabs">
-          <div class="sidebar-tab-btn active" data-tab="timeline">TIMELINE MAP</div>
-          <div class="sidebar-tab-btn" data-tab="palette">61 MOUTHS</div>
-          <div class="sidebar-tab-btn" data-tab="json">JSON DATA</div>
+          <div class="sidebar-tab-btn active" data-tab="timeline">TIMELINE</div>
+          <div class="sidebar-tab-btn" data-tab="palette">MOUTHS</div>
+          <div class="sidebar-tab-btn" data-tab="roles">ROLES & AUDIO</div>
+          <div class="sidebar-tab-btn" data-tab="layers">LAYERS</div>
+          <div class="sidebar-tab-btn" data-tab="config">CONFIG & EXPORT</div>
         </div>
 
         <!-- Tab 1: Keyframe Timeline Manager -->
@@ -853,21 +993,160 @@
           </div>
         </div>
 
-        <!-- Tab 3: JSON Import / Export -->
-        <div class="tab-content hidden" id="tab-json">
+        <!-- Tab 3: Animation Roles & Audio Configuration -->
+        <div class="tab-content hidden" id="tab-roles">
+          <!-- 1. Current Animation Role Tagging -->
           <div class="section-title">
-            <span>EXPORT TIMELINE JSON</span>
-            <button class="btn" id="btn-copy-json"
-              style="padding: 3px 8px; font-size: 10px; color: var(--accent-cyan);">COPY JSON</button>
+            <span>ANIMATION ROLE TAGGING</span>
+            <span class="role-badge none" id="badge-cur-anim-role">ROLE: NONE</span>
           </div>
 
-          <textarea id="json-output" readonly
-            style="width: 100%; height: 260px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 4px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 10px; outline: none; resize: none;"></textarea>
+          <div class="control-card">
+            <div style="font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 6px; word-break: break-all;" id="lbl-role-cur-clip">
+              CH0145_Formation_Pickup
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button class="btn" id="btn-set-default-idle" style="flex: 1; min-width: 90px; justify-content: center; font-size: 10px; color: #34d399; border-color: rgba(52, 211, 153, 0.4);">
+                ⭐ DEFAULT IDLE
+              </button>
+              <button class="btn" id="btn-toggle-idle-pool" style="flex: 1; min-width: 90px; justify-content: center; font-size: 10px; color: #60a5fa; border-color: rgba(96, 165, 250, 0.4);">
+                ➕ IDLE POOL
+              </button>
+              <button class="btn" id="btn-set-pickup" style="flex: 1; min-width: 90px; justify-content: center; font-size: 10px; color: #f43f5e; border-color: rgba(244, 63, 94, 0.4);">
+                🎯 SET PICKUP
+              </button>
+            </div>
+          </div>
 
-          <div style="display: flex; gap: 8px;">
-            <button class="btn" id="btn-save-storage"
-              style="flex: 1; border-color: var(--accent-cyan); color: var(--accent-cyan);">SAVE TO STORAGE</button>
-            <button class="btn" id="btn-import-json" style="flex: 1;">IMPORT FROM TEXT</button>
+          <!-- Roles Summary & Flow Simulation -->
+          <div class="control-card">
+            <div class="section-title" style="margin-bottom: 6px;">
+              <span>ASSIGNED ROLES SUMMARY</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11px;">
+              <div>
+                <span style="color: var(--text-muted); font-size: 10px;">DEFAULT IDLE:</span>
+                <span id="summary-default-idle" style="color: #34d399; font-weight: 700; margin-left: 4px;">CH0145_Formation_Idle</span>
+              </div>
+              <div>
+                <div style="color: var(--text-muted); font-size: 10px; margin-bottom: 4px;">IDLE LIST (POOL):</div>
+                <div id="summary-idle-pool" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  <!-- pills populated dynamically -->
+                </div>
+              </div>
+              <div>
+                <span style="color: var(--text-muted); font-size: 10px;">PICKUP ANIMATION:</span>
+                <span id="summary-pickup" style="color: #f43f5e; font-weight: 700; margin-left: 4px;">CH0145_Formation_Pickup</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
+              <button class="btn" id="btn-test-idle-flow" style="flex: 1; justify-content: center; font-size: 10px; color: #60a5fa;">
+                ▶ TEST IDLE FLOW
+              </button>
+              <button class="btn" id="btn-test-pickup-flow" style="flex: 1; justify-content: center; font-size: 10px; color: #f43f5e;">
+                ▶ TEST PICKUP FLOW
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Audio Configuration -->
+          <div class="section-title" style="margin-top: 4px;">
+            <span>AUDIO CONFIGURATION</span>
+            <label style="font-size: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; text-transform: none; cursor: pointer;">
+              <input type="checkbox" id="chk-sync-audio" checked> Sync voice
+            </label>
+          </div>
+
+          <div class="control-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 10px; font-weight: 700; color: #60a5fa;">IDLE AUDIO (1 FILE / DÒNG)</span>
+              <span style="font-size: 9px; color: var(--text-muted);">Interval: <input type="number" id="input-audio-interval" value="20" style="width: 42px; display: inline-block; padding: 1px 4px; height: 20px;">s</span>
+            </div>
+            <textarea id="txt-idle-audio" rows="3" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 4px; color: #cbd5e1; font-family: 'JetBrains Mono'; font-size: 10px; padding: 6px; outline: none; resize: vertical;"></textarea>
+
+            <div style="margin-top: 8px; margin-bottom: 4px; font-size: 10px; font-weight: 700; color: #f43f5e;">PICKUP AUDIO (1 FILE / DÒNG)</div>
+            <textarea id="txt-pickup-audio" rows="2" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 4px; color: #cbd5e1; font-family: 'JetBrains Mono'; font-size: 10px; padding: 6px; outline: none; resize: vertical;"></textarea>
+
+            <div style="display: flex; gap: 6px; margin-top: 8px; align-items: center;">
+              <button class="btn" id="btn-play-idle-audio" style="flex: 1; justify-content: center; font-size: 10px;">▶ IDLE VOICE</button>
+              <button class="btn" id="btn-play-pickup-audio" style="flex: 1; justify-content: center; font-size: 10px;">▶ PICKUP VOICE</button>
+              <button class="btn" id="btn-stop-audio" style="font-size: 10px; color: var(--accent-pink);">⏹</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Model Layers & Meshes Inspector -->
+        <div class="tab-content hidden" id="tab-layers">
+          <div class="section-title">
+            <span>MODEL LAYERS (<span id="lbl-layers-count">0</span> MESHES)</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn" id="btn-layers-show-all" style="padding: 2px 6px; font-size: 9px; color: var(--accent-cyan);">SHOW ALL</button>
+              <button class="btn" id="btn-layers-hide-all" style="padding: 2px 6px; font-size: 9px; color: var(--accent-pink);">HIDE ALL</button>
+              <button class="btn" id="btn-layers-invert" style="padding: 2px 6px; font-size: 9px; color: var(--accent-yellow);">INVERT</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 4px;">
+            <input type="text" id="input-search-layers" placeholder="Filter mesh name (e.g. Hair, Face, Body)..." style="width: 100%; font-size: 10px; height: 26px;">
+          </div>
+
+          <div class="layers-list" id="layers-container">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Tab 5: Character Config & Export -->
+        <div class="tab-content hidden" id="tab-config">
+          <div class="section-title">
+            <span>CHARACTER METADATA</span>
+          </div>
+
+          <div class="control-card" style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: grid; grid-template-columns: 80px 1fr; gap: 6px; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 10px;">ID:</span>
+              <input type="text" id="cfg-id" value="Miyu" style="height: 24px; font-size: 11px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 80px 1fr; gap: 6px; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 10px;">NAME:</span>
+              <input type="text" id="cfg-name" value="MIYU // MODEL" style="height: 24px; font-size: 11px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 80px 1fr; gap: 6px; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 10px;">GLB SRC:</span>
+              <input type="text" id="cfg-src" value="./assets/models/miyu/Miyu.glb" style="height: 24px; font-size: 10px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 4px; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 10px;">SCALE XYZ:</span>
+              <input type="number" id="cfg-scale-x" value="100" style="height: 24px; font-size: 10px;">
+              <input type="number" id="cfg-scale-y" value="100" style="height: 24px; font-size: 10px;">
+              <input type="number" id="cfg-scale-z" value="100" style="height: 24px; font-size: 10px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 80px 1fr 1fr; gap: 6px; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 10px;">MOUTH ID:</span>
+              <input type="text" id="cfg-mouth-idle" value="0" placeholder="Idle (#0)" style="height: 24px; font-size: 10px;">
+              <input type="text" id="cfg-mouth-pickup" value="33" placeholder="Pickup (#33)" style="height: 24px; font-size: 10px;">
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 6px;">
+            <span>GENERATED CONFIG</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn" id="btn-cfg-format-js" style="padding: 2px 6px; font-size: 9px; font-weight: 700; color: var(--accent-cyan); border-color: var(--accent-cyan);">.CONFIG.JS</button>
+              <button class="btn" id="btn-cfg-format-json" style="padding: 2px 6px; font-size: 9px;">JSON</button>
+            </div>
+          </div>
+
+          <textarea id="config-code-output" readonly style="width: 100%; height: 240px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 4px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 8px; outline: none; resize: vertical;"></textarea>
+
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; gap: 6px;">
+              <button class="btn" id="btn-copy-config" style="flex: 1; justify-content: center; border-color: var(--accent-cyan); color: var(--accent-cyan); font-weight: 700;">📋 COPY CONFIG</button>
+              <button class="btn" id="btn-download-config" style="flex: 1; justify-content: center; border-color: #38bdf8; color: #38bdf8; font-weight: 700;">📥 DOWNLOAD .JS</button>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn" id="btn-save-character-storage" style="flex: 1; justify-content: center;">💾 SAVE STORAGE</button>
+              <button class="btn" id="btn-load-character-storage" style="flex: 1; justify-content: center;">📂 LOAD SAVED</button>
+            </div>
           </div>
         </div>
       </div>
@@ -914,9 +1193,59 @@
     // STUDIO CORE LOGIC & THREE.JS ENGINE
     // ==========================================
 
-    const MODEL_SRC = './assets/models/miyu/Miyu.glb';
+    const DEFAULT_MODEL_SRC = './assets/models/miyu/Miyu.glb';
+    let currentModelSrc = DEFAULT_MODEL_SRC;
+    let currentModelName = 'Miyu';
+    let currentModelFileName = 'Miyu.glb';
     const ATLAS_STD_SRC = './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png';
     const ATLAS_EXTRA_SRC = './assets/common/mouths/All_Mouths_Transparent.png';
+
+    // Model & Character Configuration State
+    let characterConfig = {
+      id: 'Miyu',
+      name: 'MIYU // MODEL',
+      subtitle: 'assets/models/miyu/Miyu.glb',
+      src: './assets/models/miyu/Miyu.glb',
+      scale: { x: 100, y: 100, z: 100 },
+      animations: {
+        idleList: [
+          'CH0145_Formation_Idle',
+          'CH0145_Cafe_Idle',
+          'CH0145_Normal_Idle'
+        ],
+        defaultIdle: 'CH0145_Formation_Idle',
+        pickup: 'CH0145_Formation_Pickup',
+        timelines: {}
+      },
+      audio: {
+        idle: [
+          './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_1.ogg',
+          './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_2.ogg',
+          './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_3.ogg',
+          './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_4.ogg'
+        ],
+        pickup: [
+          './assets/models/miyu/audio/pickup/Miyu_Formation_Select.ogg'
+        ],
+        intervalSeconds: 20
+      },
+      mouthConfig: {
+        atlasSrc: './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
+        atlasExtraSrc: './assets/common/mouths/All_Mouths_Transparent.png',
+        mouthStyle: 'dynamic',
+        idleMouthIndex: 0,
+        pickupMouthIndex: 33,
+        currentMouthIndex: 0
+      },
+      hiddenMeshes: []
+    };
+
+    let modelMeshes = [];
+    let layerFilterQuery = '';
+    let studioAudio = new Audio();
+    let isTestingFlow = false;
+    let flowTimer = null;
+    let configOutputFormat = 'js'; // 'js' | 'json'
 
     // State
     let renderer, scene, camera, controls;
@@ -1199,18 +1528,69 @@
     }
 
     // 4. Load GLB Model & Setup Mouth Mesh Material Isolation
-    function loadGLBModel() {
-      const loader = new THREE.GLTFLoader();
-      loader.load(MODEL_SRC, (gltf) => {
-        modelRoot = gltf.scene;
+    function loadGLBModel(url = DEFAULT_MODEL_SRC, fileName = 'Miyu.glb') {
+      currentModelSrc = url;
+      currentModelFileName = fileName;
 
-        // Scale x100 (Height = 1.36m)
-        modelRoot.scale.set(100, 100, 100);
+      showToast(`LOADING: ${fileName}...`);
+      const loader = new THREE.GLTFLoader();
+
+      loader.load(url, (gltf) => {
+        // Clean up previous model if any
+        if (modelRoot) {
+          scene.remove(modelRoot);
+          if (mixer) {
+            mixer.stopAllAction();
+            mixer.uncacheRoot(modelRoot);
+          }
+          modelRoot.traverse((c) => {
+            if (c.geometry) c.geometry.dispose();
+            if (c.material) {
+              const mats = Array.isArray(c.material) ? c.material : [c.material];
+              mats.forEach(m => m && m.dispose && m.dispose());
+            }
+          });
+          modelRoot = null;
+        }
+
+        modelRoot = gltf.scene;
+        modelMeshes = [];
+
+        // Auto Scale & Bounding Box Calculation
+        const bbox = new THREE.Box3().setFromObject(modelRoot);
+        const size = bbox.getSize(new THREE.Vector3());
+        console.log(`[Studio] Model "${fileName}" raw bounds:`, size);
+
+        // Chibi models in Blue Archive (like Miyu) have raw height ~0.0136m -> need x100 scale
+        let scaleFactor = 100;
+        if (size.y < 0.1) {
+          scaleFactor = 100;
+        } else if (size.y > 10) {
+          scaleFactor = 0.01;
+        } else {
+          scaleFactor = 1.0;
+        }
+
+        modelRoot.scale.set(scaleFactor, scaleFactor, scaleFactor);
         modelRoot.position.set(0, 0, 0);
+
+        // Update metadata based on loaded file
+        const baseName = fileName.replace(/\.[^/.]+$/, "");
+        if (fileName !== 'Miyu.glb') {
+          characterConfig.id = baseName;
+          characterConfig.name = `${baseName.toUpperCase()} // MODEL`;
+          characterConfig.subtitle = `assets/models/${baseName}/${fileName}`;
+          characterConfig.src = `./assets/models/${baseName}/${fileName}`;
+          characterConfig.scale = { x: scaleFactor, y: scaleFactor, z: scaleFactor };
+          const titleEl = document.getElementById('lbl-studio-title');
+          if (titleEl) titleEl.textContent = `${baseName.toUpperCase()} // ANIMATION & MOUTH SYNC`;
+        }
 
         // Find and isolate mouth material (keeping eye mesh untouched)
         modelRoot.traverse((child) => {
           if (child.isMesh && child.material) {
+            modelMeshes.push(child);
+
             const isFaceOutline = child.name.includes('Face_Outline') || (child.parent && child.parent.name.includes('Face_Outline'));
             if (isFaceOutline) {
               child.userData.isEyeMesh = true;
@@ -1219,7 +1599,7 @@
 
             const idxCount = child.geometry?.index ? child.geometry.index.count : 0;
             const currentMats = Array.isArray(child.material) ? child.material : [child.material];
-            const hasEyeMouth = currentMats.some(m => m && m.name === 'CH0145_EyeMouth');
+            const hasEyeMouth = currentMats.some(m => m && (m.name.includes('EyeMouth') || m.name.includes('Mouth')));
 
             if (idxCount === 96 || (hasEyeMouth && !isFaceOutline)) {
               child.userData.isMouthMesh = true;
@@ -1227,7 +1607,7 @@
               // Clone isolated material
               const baseMat = Array.isArray(child.material) ? child.material[0] : child.material;
               mouthMaterial = baseMat.clone();
-              mouthMaterial.name = 'CH0145_Mouth_Dynamic';
+              mouthMaterial.name = `${baseName}_Mouth_Dynamic`;
               mouthMaterial.map = mouthTexture;
               mouthMaterial.transparent = true;
               mouthMaterial.opacity = 1.0;
@@ -1249,13 +1629,619 @@
         animationClips = gltf.animations || [];
         populateAnimationDropdown();
 
-        // Default to CH0145_Formation_Pickup if available
-        const pickupClip = animationClips.find(c => c.name === 'CH0145_Formation_Pickup') || animationClips[0];
-        if (pickupClip) {
-          selectAnimation(pickupClip.name);
+        // Auto-detect or adapt animation roles (Idle, Pickup)
+        detectAnimationRoles();
+
+        // Build Model Layers Inspector
+        buildLayersList();
+
+        // Update UIs
+        updateRolesUI();
+        updateConfigUI();
+
+        // Pick clip to play
+        const defIdle = characterConfig.animations.defaultIdle;
+        const pickupClip = characterConfig.animations.pickup;
+        const startClip = animationClips.find(c => c.name === defIdle) ||
+                          animationClips.find(c => c.name === pickupClip) ||
+                          animationClips[0];
+        if (startClip) {
+          selectAnimation(startClip.name);
         }
 
-        showToast('GLB & ANIMATIONS LOADED');
+        showToast(`GLB "${fileName}" LOADED: ${animationClips.length} CLIPS, ${modelMeshes.length} MESHES`);
+      }, undefined, (err) => {
+        console.error('[Studio] GLB Load error:', err);
+        showToast(`LỖI LOAD GLB: ${err.message || 'Không đọc được file'}`);
+      });
+    }
+
+    // Role Tagging Helper
+    function detectAnimationRoles() {
+      const names = animationClips.map(c => c.name);
+      if (names.length === 0) return;
+
+      // If existing config has animations valid for this model, keep them
+      const validIdles = characterConfig.animations.idleList.filter(n => names.includes(n));
+      if (validIdles.length > 0) {
+        characterConfig.animations.idleList = validIdles;
+        if (!names.includes(characterConfig.animations.defaultIdle)) {
+          characterConfig.animations.defaultIdle = validIdles[0];
+        }
+      } else {
+        // Auto-detect idle names
+        const foundIdles = names.filter(n => /idle/i.test(n));
+        if (foundIdles.length > 0) {
+          characterConfig.animations.idleList = foundIdles;
+          characterConfig.animations.defaultIdle = foundIdles.find(n => /formation.*idle/i.test(n)) || foundIdles[0];
+        } else {
+          characterConfig.animations.idleList = [names[0]];
+          characterConfig.animations.defaultIdle = names[0];
+        }
+      }
+
+      // Detect pickup
+      if (!names.includes(characterConfig.animations.pickup)) {
+        const foundPickup = names.find(n => /pickup/i.test(n));
+        characterConfig.animations.pickup = foundPickup || (names.length > 1 ? names[1] : names[0]);
+      }
+    }
+
+    function updateRolesUI() {
+      if (!currentClip) return;
+      const clipName = currentClip.name;
+      const lblClip = document.getElementById('lbl-role-cur-clip');
+      if (lblClip) lblClip.textContent = clipName;
+
+      const badge = document.getElementById('badge-cur-anim-role');
+      const isDefIdle = characterConfig.animations.defaultIdle === clipName;
+      const isIdlePool = characterConfig.animations.idleList.includes(clipName);
+      const isPickup = characterConfig.animations.pickup === clipName;
+
+      if (badge) {
+        if (isDefIdle) {
+          badge.className = 'role-badge default-idle';
+          badge.textContent = 'ROLE: DEFAULT IDLE';
+        } else if (isIdlePool) {
+          badge.className = 'role-badge idle';
+          badge.textContent = 'ROLE: IDLE POOL';
+        } else if (isPickup) {
+          badge.className = 'role-badge pickup';
+          badge.textContent = 'ROLE: PICKUP';
+        } else {
+          badge.className = 'role-badge none';
+          badge.textContent = 'ROLE: NONE (ACTION)';
+        }
+      }
+
+      // Update button labels / states
+      const btnDef = document.getElementById('btn-set-default-idle');
+      if (btnDef) {
+        btnDef.style.fontWeight = isDefIdle ? '700' : 'normal';
+        btnDef.textContent = isDefIdle ? '★ IS DEFAULT IDLE' : '⭐ SET DEFAULT IDLE';
+      }
+
+      const btnPool = document.getElementById('btn-toggle-idle-pool');
+      if (btnPool) {
+        btnPool.style.fontWeight = isIdlePool ? '700' : 'normal';
+        btnPool.textContent = isIdlePool ? '➖ REMOVE IDLE' : '➕ ADD IDLE POOL';
+      }
+
+      const btnPick = document.getElementById('btn-set-pickup');
+      if (btnPick) {
+        btnPick.style.fontWeight = isPickup ? '700' : 'normal';
+        btnPick.textContent = isPickup ? '🎯 IS PICKUP' : '🎯 SET PICKUP';
+      }
+
+      // Update summary
+      const sumDef = document.getElementById('summary-default-idle');
+      if (sumDef) sumDef.textContent = characterConfig.animations.defaultIdle || '(None)';
+
+      const sumPick = document.getElementById('summary-pickup');
+      if (sumPick) sumPick.textContent = characterConfig.animations.pickup || '(None)';
+
+      const poolContainer = document.getElementById('summary-idle-pool');
+      if (poolContainer) {
+        poolContainer.innerHTML = '';
+        characterConfig.animations.idleList.forEach(name => {
+          const pill = document.createElement('span');
+          pill.className = 'anim-tag-pill';
+          pill.innerHTML = `<span>${name}</span><span class="remove-btn" title="Remove">✕</span>`;
+          pill.querySelector('.remove-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (characterConfig.animations.idleList.length <= 1) {
+              showToast('PHẢI CÓ ÍT NHẤT 1 ĐỘNG TÁC IDLE!');
+              return;
+            }
+            characterConfig.animations.idleList = characterConfig.animations.idleList.filter(n => n !== name);
+            if (characterConfig.animations.defaultIdle === name) {
+              characterConfig.animations.defaultIdle = characterConfig.animations.idleList[0];
+            }
+            updateRolesUI();
+            updateConfigUI();
+          });
+          poolContainer.appendChild(pill);
+        });
+      }
+
+      // Update Audio inputs
+      const txtIdle = document.getElementById('txt-idle-audio');
+      if (txtIdle && document.activeElement !== txtIdle) {
+        txtIdle.value = characterConfig.audio.idle.join('\n');
+      }
+      const txtPick = document.getElementById('txt-pickup-audio');
+      if (txtPick && document.activeElement !== txtPick) {
+        txtPick.value = characterConfig.audio.pickup.join('\n');
+      }
+      const numInt = document.getElementById('input-audio-interval');
+      if (numInt && document.activeElement !== numInt) {
+        numInt.value = characterConfig.audio.intervalSeconds;
+      }
+    }
+
+    function setDefaultIdle(clipName) {
+      characterConfig.animations.defaultIdle = clipName;
+      if (!characterConfig.animations.idleList.includes(clipName)) {
+        characterConfig.animations.idleList.push(clipName);
+      }
+      updateRolesUI();
+      updateConfigUI();
+      showToast(`ĐÃ GÁN DEFAULT IDLE: ${clipName}`);
+    }
+
+    function toggleIdlePool(clipName) {
+      const idx = characterConfig.animations.idleList.indexOf(clipName);
+      if (idx >= 0) {
+        if (characterConfig.animations.idleList.length <= 1) {
+          showToast('CẦN GIỮ ÍT NHẤT 1 IDLE TRONG POOL!');
+          return;
+        }
+        characterConfig.animations.idleList.splice(idx, 1);
+        if (characterConfig.animations.defaultIdle === clipName) {
+          characterConfig.animations.defaultIdle = characterConfig.animations.idleList[0];
+        }
+        showToast(`ĐÃ BỎ ${clipName} KHỎI IDLE POOL`);
+      } else {
+        characterConfig.animations.idleList.push(clipName);
+        showToast(`ĐÃ THÊM ${clipName} VÀO IDLE POOL`);
+      }
+      updateRolesUI();
+      updateConfigUI();
+    }
+
+    function setPickupAnimation(clipName) {
+      characterConfig.animations.pickup = clipName;
+      updateRolesUI();
+      updateConfigUI();
+      showToast(`ĐÃ GÁN PICKUP ANIMATION: ${clipName}`);
+    }
+
+    // Audio Controls
+    function syncAudioFromInputs() {
+      const txtIdle = document.getElementById('txt-idle-audio');
+      if (txtIdle) {
+        characterConfig.audio.idle = txtIdle.value.split('\n').map(s => s.trim()).filter(Boolean);
+      }
+      const txtPick = document.getElementById('txt-pickup-audio');
+      if (txtPick) {
+        characterConfig.audio.pickup = txtPick.value.split('\n').map(s => s.trim()).filter(Boolean);
+      }
+      const numInt = document.getElementById('input-audio-interval');
+      if (numInt) {
+        characterConfig.audio.intervalSeconds = parseInt(numInt.value, 10) || 20;
+      }
+    }
+
+    function playIdleAudio() {
+      syncAudioFromInputs();
+      const list = characterConfig.audio.idle;
+      if (!list || list.length === 0) {
+        showToast('CHƯA CÓ FILE IDLE AUDIO');
+        return;
+      }
+      const randomUrl = list[Math.floor(Math.random() * list.length)];
+      try {
+        studioAudio.src = randomUrl;
+        studioAudio.play().catch(e => console.warn('Audio play error:', e));
+        showToast(`PHÁT IDLE VOICE: ${randomUrl.split('/').pop()}`);
+      } catch (e) {
+        console.warn('Audio play error:', e);
+      }
+    }
+
+    function playPickupAudio() {
+      syncAudioFromInputs();
+      const list = characterConfig.audio.pickup;
+      if (!list || list.length === 0) {
+        showToast('CHƯA CÓ FILE PICKUP AUDIO');
+        return;
+      }
+      const url = list[0];
+      try {
+        studioAudio.src = url;
+        studioAudio.play().catch(e => console.warn('Audio play error:', e));
+        showToast(`PHÁT PICKUP VOICE: ${url.split('/').pop()}`);
+      } catch (e) {
+        console.warn('Audio play error:', e);
+      }
+    }
+
+    function stopAudio() {
+      studioAudio.pause();
+      studioAudio.currentTime = 0;
+      showToast('ĐÃ DỪNG ÂM THANH');
+    }
+
+    // Simulation Flows
+    function testIdleFlow() {
+      clearTimeout(flowTimer);
+      const idleClip = characterConfig.animations.defaultIdle || characterConfig.animations.idleList[0];
+      if (!idleClip) return;
+
+      selectAnimation(idleClip);
+      renderActiveMouth(characterConfig.mouthConfig.idleMouthIndex || 0);
+
+      const syncAudio = document.getElementById('chk-sync-audio')?.checked;
+      if (syncAudio) {
+        playIdleAudio();
+      }
+
+      if (!isPlaying) togglePlayPause();
+      showToast(`TEST IDLE: Đang phát "${idleClip}"`);
+    }
+
+    function testPickupFlow() {
+      clearTimeout(flowTimer);
+      const pickupClip = characterConfig.animations.pickup;
+      if (!pickupClip) {
+        showToast('CHƯA CÓ PICKUP ANIMATION');
+        return;
+      }
+
+      selectAnimation(pickupClip);
+      renderActiveMouth(characterConfig.mouthConfig.pickupMouthIndex || 33);
+
+      const syncAudio = document.getElementById('chk-sync-audio')?.checked;
+      if (syncAudio) {
+        playPickupAudio();
+      }
+
+      if (!isPlaying) togglePlayPause();
+      showToast(`TEST PICKUP: Đang nhấc nhân vật (3s)...`);
+
+      // After 3.2 seconds, simulate drop back to idle
+      flowTimer = setTimeout(() => {
+        const idles = characterConfig.animations.idleList;
+        const nextIdle = idles[Math.floor(Math.random() * idles.length)] || characterConfig.animations.defaultIdle;
+        if (nextIdle) {
+          selectAnimation(nextIdle);
+          renderActiveMouth(characterConfig.mouthConfig.idleMouthIndex || 0);
+          showToast(`THẢ NHÂN VẬT -> Chuyển về Idle: "${nextIdle}"`);
+        }
+      }, 3200);
+    }
+
+    // Model Layers / Meshes Inspector
+    function buildLayersList() {
+      const container = document.getElementById('layers-container');
+      const countEl = document.getElementById('lbl-layers-count');
+      if (!container) return;
+      container.innerHTML = '';
+      if (countEl) countEl.textContent = modelMeshes.length;
+
+      const query = (layerFilterQuery || '').toLowerCase().trim();
+
+      modelMeshes.forEach((mesh, idx) => {
+        const meshName = mesh.name || `Mesh_${idx}`;
+        if (query && !meshName.toLowerCase().includes(query)) return;
+
+        const isVisible = mesh.visible !== false;
+        const item = document.createElement('div');
+        item.className = `layer-item ${isVisible ? '' : 'hidden-mesh'}`;
+
+        const isMouth = !!mesh.userData.isMouthMesh;
+        const isEye = !!mesh.userData.isEyeMesh;
+        const isSkinned = mesh.isSkinnedMesh;
+
+        let badgeHtml = '';
+        if (isMouth) badgeHtml += '<span class="layer-badge badge-mouth">MOUTH</span>';
+        if (isEye) badgeHtml += '<span class="layer-badge badge-eye">OUTLINE</span>';
+        if (isSkinned) badgeHtml += '<span class="layer-badge badge-skinned">SKIN</span>';
+
+        const vertCount = mesh.geometry?.attributes?.position?.count || 0;
+        const faceCount = mesh.geometry?.index ? Math.round(mesh.geometry.index.count / 3) : Math.round(vertCount / 3);
+
+        item.innerHTML = `
+          <div class="layer-main">
+            <button class="btn btn-layer-vis" style="padding: 2px 5px; font-size: 11px; ${isVisible ? 'color: var(--accent-cyan);' : 'color: var(--text-muted);'}">
+              ${isVisible ? '👁' : '🚫'}
+            </button>
+            <div style="display: flex; flex-direction: column; overflow: hidden;">
+              <span class="layer-name" title="${meshName}">${meshName}</span>
+              <span class="layer-stats">${vertCount}v / ${faceCount}f</span>
+            </div>
+            ${badgeHtml}
+          </div>
+          <button class="btn btn-layer-solo" style="padding: 2px 6px; font-size: 9px; color: var(--accent-yellow);">SOLO</button>
+        `;
+
+        // Visibility toggle
+        item.querySelector('.btn-layer-vis').addEventListener('click', () => {
+          toggleMeshVisibility(idx);
+        });
+
+        // Solo toggle
+        item.querySelector('.btn-layer-solo').addEventListener('click', () => {
+          soloMesh(idx);
+        });
+
+        container.appendChild(item);
+      });
+    }
+
+    function toggleMeshVisibility(meshIdx) {
+      const mesh = modelMeshes[meshIdx];
+      if (!mesh) return;
+      mesh.visible = !mesh.visible;
+
+      const name = mesh.name || `Mesh_${meshIdx}`;
+      if (!mesh.visible) {
+        if (!characterConfig.hiddenMeshes.includes(name)) characterConfig.hiddenMeshes.push(name);
+      } else {
+        characterConfig.hiddenMeshes = characterConfig.hiddenMeshes.filter(n => n !== name);
+      }
+
+      buildLayersList();
+      updateConfigUI();
+      showToast(`${mesh.visible ? 'HIỆN' : 'ẨN'} LAYER: ${name}`);
+    }
+
+    function soloMesh(meshIdx) {
+      const targetMesh = modelMeshes[meshIdx];
+      if (!targetMesh) return;
+
+      modelMeshes.forEach((m, i) => {
+        m.visible = (i === meshIdx);
+      });
+
+      characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast(`SOLO LAYER: ${targetMesh.name}`);
+    }
+
+    function setAllMeshesVisibility(visible) {
+      modelMeshes.forEach(m => {
+        m.visible = visible;
+      });
+      characterConfig.hiddenMeshes = visible ? [] : modelMeshes.map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast(visible ? 'ĐÃ HIỆN TẤT CẢ LAYERS' : 'ĐÃ ẨN TẤT CẢ LAYERS');
+    }
+
+    function invertMeshesVisibility() {
+      modelMeshes.forEach(m => {
+        m.visible = !m.visible;
+      });
+      characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast('ĐÃ ĐẢO NGƯỢC HIỂN THỊ LAYERS');
+    }
+
+    // Character Config Generation & Export
+    function syncConfigFromInputs() {
+      const idEl = document.getElementById('cfg-id');
+      const nameEl = document.getElementById('cfg-name');
+      const srcEl = document.getElementById('cfg-src');
+      const sxEl = document.getElementById('cfg-scale-x');
+      const syEl = document.getElementById('cfg-scale-y');
+      const szEl = document.getElementById('cfg-scale-z');
+      const idleMouthEl = document.getElementById('cfg-mouth-idle');
+      const pickupMouthEl = document.getElementById('cfg-mouth-pickup');
+
+      if (idEl) characterConfig.id = idEl.value.trim() || 'Character';
+      if (nameEl) characterConfig.name = nameEl.value.trim() || 'CHARACTER // MODEL';
+      if (srcEl) {
+        characterConfig.src = srcEl.value.trim();
+        characterConfig.subtitle = srcEl.value.replace(/^\.\//, '');
+      }
+      if (sxEl && syEl && szEl) {
+        characterConfig.scale = {
+          x: parseFloat(sxEl.value) || 100,
+          y: parseFloat(syEl.value) || 100,
+          z: parseFloat(szEl.value) || 100
+        };
+      }
+      if (idleMouthEl) {
+        const val = idleMouthEl.value.trim();
+        characterConfig.mouthConfig.idleMouthIndex = val.startsWith('e') ? val : (parseInt(val, 10) || 0);
+      }
+      if (pickupMouthEl) {
+        const val = pickupMouthEl.value.trim();
+        characterConfig.mouthConfig.pickupMouthIndex = val.startsWith('e') ? val : (parseInt(val, 10) || 33);
+      }
+
+      // Sync mouth timelines
+      characterConfig.animations.timelines = { ...animationMouthTimelines };
+    }
+
+    function generateConfigJS() {
+      syncConfigFromInputs();
+      syncAudioFromInputs();
+      const varName = `${characterConfig.id.toUpperCase()}_MODEL_CONFIG`;
+
+      return `/**
+ * ${characterConfig.name} Character & Model Configuration
+ * Packaged settings, metadata, animations and mouth setup.
+ * Generated via Blue Archive 3D Animation & Debug Studio
+ */
+
+export const ${varName} = {
+  id: '${characterConfig.id}',
+  name: '${characterConfig.name}',
+  subtitle: '${characterConfig.subtitle}',
+  src: '${characterConfig.src}',
+  scale: { x: ${characterConfig.scale.x}, y: ${characterConfig.scale.y}, z: ${characterConfig.scale.z} },
+  animations: {
+    idleList: ${JSON.stringify(characterConfig.animations.idleList, null, 6)},
+    defaultIdle: '${characterConfig.animations.defaultIdle}',
+    pickup: '${characterConfig.animations.pickup}',
+    timelines: ${JSON.stringify(characterConfig.animations.timelines, null, 6)}
+  },
+  audio: {
+    idle: ${JSON.stringify(characterConfig.audio.idle, null, 6)},
+    pickup: ${JSON.stringify(characterConfig.audio.pickup, null, 6)},
+    intervalSeconds: ${characterConfig.audio.intervalSeconds}
+  },
+  mouthConfig: {
+    atlasSrc: '${characterConfig.mouthConfig.atlasSrc}',
+    atlasExtraSrc: '${characterConfig.mouthConfig.atlasExtraSrc}',
+    mouthStyle: '${characterConfig.mouthConfig.mouthStyle}',
+    idleMouthIndex: ${typeof characterConfig.mouthConfig.idleMouthIndex === 'string' ? `'${characterConfig.mouthConfig.idleMouthIndex}'` : characterConfig.mouthConfig.idleMouthIndex},
+    pickupMouthIndex: ${typeof characterConfig.mouthConfig.pickupMouthIndex === 'string' ? `'${characterConfig.mouthConfig.pickupMouthIndex}'` : characterConfig.mouthConfig.pickupMouthIndex},
+    currentMouthIndex: 0
+  },
+  hiddenMeshes: ${JSON.stringify(characterConfig.hiddenMeshes, null, 4)},
+  placed: false,
+  entityEl: null,
+  iconSvg: \`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>\`
+};
+
+export default ${varName};
+`;
+    }
+
+    function generateConfigJSON() {
+      syncConfigFromInputs();
+      syncAudioFromInputs();
+      return JSON.stringify(characterConfig, null, 2);
+    }
+
+    function updateConfigUI() {
+      const outputEl = document.getElementById('config-code-output');
+      if (!outputEl) return;
+      outputEl.value = (configOutputFormat === 'json') ? generateConfigJSON() : generateConfigJS();
+
+      // Update input values
+      const idEl = document.getElementById('cfg-id');
+      if (idEl && document.activeElement !== idEl) idEl.value = characterConfig.id;
+      const nameEl = document.getElementById('cfg-name');
+      if (nameEl && document.activeElement !== nameEl) nameEl.value = characterConfig.name;
+      const srcEl = document.getElementById('cfg-src');
+      if (srcEl && document.activeElement !== srcEl) srcEl.value = characterConfig.src;
+      const sx = document.getElementById('cfg-scale-x');
+      if (sx && document.activeElement !== sx) sx.value = characterConfig.scale.x;
+      const sy = document.getElementById('cfg-scale-y');
+      if (sy && document.activeElement !== sy) sy.value = characterConfig.scale.y;
+      const sz = document.getElementById('cfg-scale-z');
+      if (sz && document.activeElement !== sz) sz.value = characterConfig.scale.z;
+      const midle = document.getElementById('cfg-mouth-idle');
+      if (midle && document.activeElement !== midle) midle.value = characterConfig.mouthConfig.idleMouthIndex;
+      const mpick = document.getElementById('cfg-mouth-pickup');
+      if (mpick && document.activeElement !== mpick) mpick.value = characterConfig.mouthConfig.pickupMouthIndex;
+    }
+
+    function copyConfigCode() {
+      const code = (configOutputFormat === 'json') ? generateConfigJSON() : generateConfigJS();
+      navigator.clipboard.writeText(code).then(() => {
+        showToast(`ĐÃ COPY CẤU HÌNH (${configOutputFormat.toUpperCase()}) VÀO CLIPBOARD!`);
+      });
+    }
+
+    function downloadConfigFile() {
+      const code = (configOutputFormat === 'json') ? generateConfigJSON() : generateConfigJS();
+      const ext = (configOutputFormat === 'json') ? 'json' : 'js';
+      const fileName = `${characterConfig.id.toLowerCase()}.config.${ext}`;
+      const blob = new Blob([code], { type: 'text/javascript' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast(`ĐÃ TẢI XUỐNG: ${fileName}`);
+    }
+
+    function saveCharacterConfigToStorage() {
+      syncConfigFromInputs();
+      syncAudioFromInputs();
+      localStorage.setItem(`char_cfg_${characterConfig.id}`, JSON.stringify(characterConfig));
+      showToast(`ĐÃ LƯU CẤU HÌNH "${characterConfig.id}" VÀO STORAGE`);
+    }
+
+    function loadCharacterConfigFromStorage() {
+      const id = prompt('Nhập Character ID cần tải từ storage (ví dụ: Miyu):', characterConfig.id);
+      if (!id) return;
+      const saved = localStorage.getItem(`char_cfg_${id}`);
+      if (saved) {
+        try {
+          characterConfig = JSON.parse(saved);
+          if (characterConfig.animations?.timelines) {
+            animationMouthTimelines = { ...characterConfig.animations.timelines };
+          }
+          updateRolesUI();
+          updateConfigUI();
+          renderTimelineMarkers();
+          renderKeyframesList();
+          showToast(`ĐÃ TẢI CẤU HÌNH "${id}" THÀNH CÔNG!`);
+        } catch (e) {
+          alert('Lỗi định dạng dữ liệu config!');
+        }
+      } else {
+        showToast(`Không tìm thấy cấu hình "${id}" trong Storage!`);
+      }
+    }
+
+    function handleGLBFileInput(file) {
+      if (!file) return;
+      if (!file.name.endsWith('.glb') && !file.name.endsWith('.gltf')) {
+        showToast('Vui lòng chọn file định dạng .glb hoặc .gltf');
+        return;
+      }
+      const blobUrl = URL.createObjectURL(file);
+
+      // Add to select-model-source dropdown if not present
+      const sel = document.getElementById('select-model-source');
+      if (sel) {
+        let opt = Array.from(sel.options).find(o => o.value === blobUrl);
+        if (!opt) {
+          opt = document.createElement('option');
+          opt.value = blobUrl;
+          opt.textContent = `📁 ${file.name}`;
+          sel.appendChild(opt);
+        }
+        sel.value = blobUrl;
+      }
+
+      loadGLBModel(blobUrl, file.name);
+    }
+
+    function setupDragAndDrop() {
+      const viewport = document.getElementById('viewport-container');
+      if (!viewport) return;
+
+      ['dragenter', 'dragover'].forEach(name => {
+        viewport.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          viewport.classList.add('drag-over');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(name => {
+        viewport.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          viewport.classList.remove('drag-over');
+        });
+      });
+
+      viewport.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          handleGLBFileInput(files[0]);
+        }
       });
     }
 
@@ -1331,6 +2317,7 @@
       renderTimelineMarkers();
       renderKeyframesList();
       updateTimelineUI();
+      updateRolesUI();
     }
 
     function setAnimationTime(t) {
@@ -1918,6 +2905,8 @@
     function saveTimelineToStorage(silent = false) {
       if (!currentClip) return;
       localStorage.setItem(`miyu_mouth_${currentClip.name}`, JSON.stringify(animationMouthTimelines[currentClip.name] || []));
+      characterConfig.animations.timelines = { ...animationMouthTimelines };
+      updateConfigUI();
       if (!silent) {
         showToast('SAVED TO LOCAL STORAGE');
       }
@@ -2106,39 +3095,113 @@
         });
       }
 
-      // Copy JSON
-      document.getElementById('btn-copy-json').addEventListener('click', () => {
-        const text = document.getElementById('json-output').value;
-        navigator.clipboard.writeText(text).then(() => {
-          showToast('COPIED JSON TO CLIPBOARD!');
-        });
-      });
+      // Model Source & Open GLB File
+      const btnLoadGlb = document.getElementById('btn-load-glb');
+      const fileGlbInput = document.getElementById('file-glb-input');
+      const selModelSource = document.getElementById('select-model-source');
 
-      // Save Storage
-      document.getElementById('btn-save-storage').addEventListener('click', () => {
-        saveTimelineToStorage();
-      });
-
-      // Import JSON
-      document.getElementById('btn-import-json').addEventListener('click', () => {
-        const str = prompt('Paste keyframe JSON data:');
-        if (str && currentClip) {
-          try {
-            const data = JSON.parse(str);
-            if (Array.isArray(data.mouthTimeline)) {
-              animationMouthTimelines[currentClip.name] = data.mouthTimeline.map(kf => ({
-                time: kf.time,
-                mouth: kf.mouth,
-                label: kf.label
-              }));
-              renderTimelineMarkers();
-              renderKeyframesList();
-              showToast('IMPORTED JSON SUCCESSFULLY');
-            }
-          } catch (e) {
-            alert('Invalid JSON format!');
+      if (btnLoadGlb && fileGlbInput) {
+        btnLoadGlb.addEventListener('click', () => fileGlbInput.click());
+        fileGlbInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleGLBFileInput(e.target.files[0]);
           }
-        }
+        });
+      }
+
+      if (selModelSource) {
+        selModelSource.addEventListener('change', (e) => {
+          if (e.target.value === 'default_miyu') {
+            loadGLBModel(DEFAULT_MODEL_SRC, 'Miyu.glb');
+          } else {
+            const chosenOpt = selModelSource.selectedOptions[0];
+            loadGLBModel(e.target.value, chosenOpt ? chosenOpt.textContent.replace('📁 ', '') : 'custom.glb');
+          }
+        });
+      }
+
+      // Viewport Drag & Drop
+      setupDragAndDrop();
+
+      // Animation Roles buttons
+      document.getElementById('btn-set-default-idle')?.addEventListener('click', () => {
+        if (currentClip) setDefaultIdle(currentClip.name);
+      });
+      document.getElementById('btn-toggle-idle-pool')?.addEventListener('click', () => {
+        if (currentClip) toggleIdlePool(currentClip.name);
+      });
+      document.getElementById('btn-set-pickup')?.addEventListener('click', () => {
+        if (currentClip) setPickupAnimation(currentClip.name);
+      });
+      document.getElementById('btn-test-idle-flow')?.addEventListener('click', () => {
+        testIdleFlow();
+      });
+      document.getElementById('btn-test-pickup-flow')?.addEventListener('click', () => {
+        testPickupFlow();
+      });
+
+      // Audio configuration & testing buttons
+      document.getElementById('btn-play-idle-audio')?.addEventListener('click', () => playIdleAudio());
+      document.getElementById('btn-play-pickup-audio')?.addEventListener('click', () => playPickupAudio());
+      document.getElementById('btn-stop-audio')?.addEventListener('click', () => stopAudio());
+      document.getElementById('txt-idle-audio')?.addEventListener('input', () => {
+        syncAudioFromInputs();
+        updateConfigUI();
+      });
+      document.getElementById('txt-pickup-audio')?.addEventListener('input', () => {
+        syncAudioFromInputs();
+        updateConfigUI();
+      });
+      document.getElementById('input-audio-interval')?.addEventListener('change', () => {
+        syncAudioFromInputs();
+        updateConfigUI();
+      });
+
+      // Model Layers buttons
+      document.getElementById('btn-layers-show-all')?.addEventListener('click', () => setAllMeshesVisibility(true));
+      document.getElementById('btn-layers-hide-all')?.addEventListener('click', () => setAllMeshesVisibility(false));
+      document.getElementById('btn-layers-invert')?.addEventListener('click', () => invertMeshesVisibility());
+      document.getElementById('input-search-layers')?.addEventListener('input', (e) => {
+        layerFilterQuery = e.target.value;
+        buildLayersList();
+      });
+
+      // Config & Export buttons
+      const btnCfgJs = document.getElementById('btn-cfg-format-js');
+      const btnCfgJson = document.getElementById('btn-cfg-format-json');
+      if (btnCfgJs && btnCfgJson) {
+        btnCfgJs.addEventListener('click', () => {
+          configOutputFormat = 'js';
+          btnCfgJs.classList.add('active');
+          btnCfgJs.style.borderColor = 'var(--accent-cyan)';
+          btnCfgJs.style.color = 'var(--accent-cyan)';
+          btnCfgJson.classList.remove('active');
+          btnCfgJson.style.borderColor = 'var(--border-color)';
+          btnCfgJson.style.color = 'var(--text-main)';
+          updateConfigUI();
+        });
+        btnCfgJson.addEventListener('click', () => {
+          configOutputFormat = 'json';
+          btnCfgJson.classList.add('active');
+          btnCfgJson.style.borderColor = 'var(--accent-cyan)';
+          btnCfgJson.style.color = 'var(--accent-cyan)';
+          btnCfgJs.classList.remove('active');
+          btnCfgJs.style.borderColor = 'var(--border-color)';
+          btnCfgJs.style.color = 'var(--text-main)';
+          updateConfigUI();
+        });
+      }
+
+      document.getElementById('btn-copy-config')?.addEventListener('click', () => copyConfigCode());
+      document.getElementById('btn-download-config')?.addEventListener('click', () => downloadConfigFile());
+      document.getElementById('btn-save-character-storage')?.addEventListener('click', () => saveCharacterConfigToStorage());
+      document.getElementById('btn-load-character-storage')?.addEventListener('click', () => loadCharacterConfigFromStorage());
+
+      ['cfg-id', 'cfg-name', 'cfg-src', 'cfg-scale-x', 'cfg-scale-y', 'cfg-scale-z', 'cfg-mouth-idle', 'cfg-mouth-pickup'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+          syncConfigFromInputs();
+          updateConfigUI();
+        });
       });
     }
 

@@ -168,13 +168,25 @@ export function getHUDHTMLTemplate() {
               <span class="control-label">MOUTH EXPRESSION</span>
               <span class="control-value" id="val-mouth-shape">#00 SMILE</span>
             </div>
+            <div class="mouth-mode-switcher" style="display: flex; gap: 4px; margin-bottom: 8px;">
+              <button class="bento-tab-btn active" id="btn-mouth-mode-std" style="flex: 1; padding: 4px 6px; font-size: 10px; font-weight: 700;">STD (61)</button>
+              <button class="bento-tab-btn" id="btn-mouth-mode-extra" style="flex: 1; padding: 4px 6px; font-size: 10px; font-weight: 700; color: #38bdf8;">✨ EXTRA (130)</button>
+            </div>
             <input type="range" class="pixel-range" id="input-mouth-shape" min="0" max="60" step="1" value="0">
-            <div class="quick-mouth-presets">
+            <div class="quick-mouth-presets" id="presets-mouth-std" style="display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap;">
               <button class="bento-tab-btn" data-mouth="0">SMILE</button>
               <button class="bento-tab-btn" data-mouth="1">TALK</button>
               <button class="bento-tab-btn" data-mouth="3">SURPRISE</button>
               <button class="bento-tab-btn" data-mouth="17">LAUGH</button>
               <button class="bento-tab-btn" data-mouth="33">SHOUT</button>
+            </div>
+            <div class="quick-mouth-presets" id="presets-mouth-extra" style="display: none; gap: 4px; margin-top: 6px; flex-wrap: wrap;">
+              <button class="bento-tab-btn" data-mouth="e0">E#00</button>
+              <button class="bento-tab-btn" data-mouth="e10">E#10</button>
+              <button class="bento-tab-btn" data-mouth="e25">E#25</button>
+              <button class="bento-tab-btn" data-mouth="e50">E#50</button>
+              <button class="bento-tab-btn" data-mouth="e80">E#80</button>
+              <button class="bento-tab-btn" data-mouth="e110">E#110</button>
             </div>
           </div>
 

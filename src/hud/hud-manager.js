@@ -36,8 +36,8 @@ export class PixelHUDManager {
     this.lightsEnabled = true;
     this.lightIntensity = 1.2;
     this.flatShader = true;
-    this.debugGridsEnabled = false;
     this.debugGridsGroup = null;
+    this.mouthMode = 'std'; // 'std' (0..60) or 'extra' ('e0'..'e129')
 
     // Selected object transform state
     this.transformState = {
@@ -316,19 +316,65 @@ export class PixelHUDManager {
       this.applyTransformToActive();
     });
 
+    const btnMouthStd = document.getElementById('btn-mouth-mode-std');
+    const btnMouthExtra = document.getElementById('btn-mouth-mode-extra');
+    const presetsStd = document.getElementById('presets-mouth-std');
+    const presetsExtra = document.getElementById('presets-mouth-extra');
     const inputMouth = document.getElementById('input-mouth-shape');
+
+    if (btnMouthStd && btnMouthExtra) {
+      btnMouthStd.addEventListener('click', () => {
+        this.mouthMode = 'std';
+        btnMouthStd.classList.add('active');
+        btnMouthExtra.classList.remove('active');
+        if (inputMouth) {
+          inputMouth.min = '0';
+          inputMouth.max = '60';
+          inputMouth.value = '0';
+        }
+        if (presetsStd) presetsStd.style.display = 'flex';
+        if (presetsExtra) presetsExtra.style.display = 'none';
+        this.setMouthShape(0);
+      });
+
+      btnMouthExtra.addEventListener('click', () => {
+        this.mouthMode = 'extra';
+        btnMouthExtra.classList.add('active');
+        btnMouthStd.classList.remove('active');
+        if (inputMouth) {
+          inputMouth.min = '0';
+          inputMouth.max = '129';
+          inputMouth.value = '0';
+        }
+        if (presetsStd) presetsStd.style.display = 'none';
+        if (presetsExtra) presetsExtra.style.display = 'flex';
+        this.setMouthShape('e0');
+      });
+    }
+
     if (inputMouth) {
       inputMouth.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        this.setMouthShape(val);
+        if (this.mouthMode === 'extra') {
+          const val = `e${e.target.value}`;
+          this.setMouthShape(val);
+        } else {
+          const val = parseInt(e.target.value, 10);
+          this.setMouthShape(val);
+        }
       });
     }
 
     document.querySelectorAll('.quick-mouth-presets button').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        const val = parseInt(e.currentTarget.getAttribute('data-mouth'), 10);
-        if (inputMouth) inputMouth.value = val;
-        this.setMouthShape(val);
+        const raw = e.currentTarget.getAttribute('data-mouth');
+        if (raw && raw.startsWith('e')) {
+          if (inputMouth) inputMouth.value = parseInt(raw.substring(1), 10);
+          this.setMouthShape(raw);
+        } else {
+          const val = parseInt(raw, 10);
+          if (inputMouth) inputMouth.value = val;
+          this.setMouthShape(val);
+        }
       });
     });
 
@@ -729,7 +775,12 @@ export class PixelHUDManager {
       33: '#33 SHOUT'
     };
     if (lbl) {
-      lbl.textContent = presetNames[val] || `#${String(val).padStart(2, '0')}`;
+      if (typeof val === 'string' && val.startsWith('e')) {
+        const num = val.substring(1);
+        lbl.textContent = `EXTRA #${String(num).padStart(2, '0')}`;
+      } else {
+        lbl.textContent = presetNames[val] || `#${String(val).padStart(2, '0')}`;
+      }
     }
     const activeModel = this.models.find(m => m.placed);
     const entity = (activeModel && activeModel.entityEl) || document.querySelector('.spawned-object');
