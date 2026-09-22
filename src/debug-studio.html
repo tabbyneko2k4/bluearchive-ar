@@ -719,64 +719,255 @@
         text-shadow: 0 0 10px rgba(0, 255, 200, 0.5);
       }
 
-      /* Model Layers Inspector Styles */
-      .layers-list {
+      /* Photoshop-Style Layers Panel */
+      .ps-layers-panel {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        max-height: 480px;
-        overflow-y: auto;
-        padding-right: 4px;
+        gap: 6px;
       }
-      .layer-item {
+      .ps-toolbar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 4px;
+        background: #090d16;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 4px 6px;
+      }
+      .ps-search-wrap {
+        position: relative;
+        flex: 1;
+      }
+      .ps-search-input {
+        width: 100%;
         background: #0f172a;
         border: 1px solid var(--border-color);
+        border-radius: 3px;
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        padding: 4px 22px 4px 6px;
+        outline: none;
+      }
+      .ps-search-input:focus {
+        border-color: var(--accent-cyan);
+      }
+      .ps-search-clear {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .ps-btn {
+        background: #1e293b;
+        border: 1px solid var(--border-color);
+        color: #cbd5e1;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        padding: 3px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        transition: all 0.15s ease;
+        user-select: none;
+      }
+      .ps-btn:hover {
+        background: rgba(0, 255, 200, 0.15);
+        border-color: var(--accent-cyan);
+        color: var(--accent-cyan);
+      }
+      .ps-btn.active {
+        background: var(--accent-cyan);
+        color: #050811;
+        font-weight: 700;
+        border-color: var(--accent-cyan);
+      }
+      .ps-inspector-bar {
+        background: #090d16;
+        border: 1px solid rgba(0, 255, 200, 0.35);
         border-radius: 4px;
         padding: 6px 8px;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        gap: 6px;
-        transition: all 0.15s ease;
       }
-      .layer-item:hover {
-        border-color: rgba(0, 255, 200, 0.4);
-        background: rgba(15, 23, 42, 0.9);
-      }
-      .layer-item.hidden-mesh {
-        opacity: 0.45;
-        background: #080c14;
-      }
-      .layer-main {
+      .ps-inspector-header {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 8px;
-        flex: 1;
-        overflow: hidden;
+        font-size: 10px;
+        margin-bottom: 5px;
       }
-      .layer-name {
-        color: #fff;
-        font-weight: 600;
+      .ps-inspector-name {
+        font-weight: 700;
+        color: var(--accent-cyan);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        max-width: 220px;
       }
-      .layer-stats {
+      .ps-inspector-opacity-row {
+        display: grid;
+        grid-template-columns: 55px 1fr 38px;
+        align-items: center;
+        gap: 6px;
         font-size: 9px;
         color: var(--text-muted);
       }
-      .layer-badge {
+      .ps-tree-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .ps-folder {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #0d131f;
+        overflow: hidden;
+      }
+      .ps-folder-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        background: #131b2c;
+        cursor: pointer;
+        user-select: none;
+        border-bottom: 1px solid transparent;
+        transition: background 0.15s ease;
+      }
+      .ps-folder-header:hover {
+        background: #1a243b;
+      }
+      .ps-folder.open .ps-folder-header {
+        border-bottom-color: var(--border-color);
+      }
+      .ps-folder-arrow {
         font-size: 8px;
+        color: var(--text-muted);
+        width: 10px;
+        transition: transform 0.15s ease;
+      }
+      .ps-folder.open .ps-folder-arrow {
+        transform: rotate(90deg);
+      }
+      .ps-eye-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-size: 13px;
+        line-height: 1;
+        color: var(--accent-cyan);
+        transition: color 0.15s ease;
+      }
+      .ps-eye-btn.hidden-eye {
+        color: #475569;
+        opacity: 0.5;
+      }
+      .ps-folder-icon {
+        font-size: 12px;
+      }
+      .ps-folder-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        color: #f1f5f9;
+        flex: 1;
+      }
+      .ps-folder-count {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        background: #1e293b;
+        border: 1px solid var(--border-color);
+        color: #94a3b8;
+        padding: 1px 5px;
+        border-radius: 10px;
+      }
+      .ps-btn-solo-cat {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8px;
+        font-weight: 700;
+        background: transparent;
+        border: 1px solid rgba(234, 179, 8, 0.4);
+        color: var(--accent-yellow);
+        padding: 1px 5px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .ps-btn-solo-cat:hover {
+        background: rgba(234, 179, 8, 0.2);
+      }
+      .ps-folder-body {
+        display: none;
+        flex-direction: column;
+      }
+      .ps-folder.open .ps-folder-body {
+        display: flex;
+      }
+      .ps-layer-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px 5px 22px;
+        border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        cursor: pointer;
+        transition: background 0.12s ease;
+      }
+      .ps-layer-row:last-child {
+        border-bottom: none;
+      }
+      .ps-layer-row:hover {
+        background: rgba(0, 255, 200, 0.08);
+      }
+      .ps-layer-row.selected {
+        background: rgba(0, 255, 200, 0.18);
+        border-left: 3px solid var(--accent-cyan);
+      }
+      .ps-layer-row.hidden-mesh {
+        opacity: 0.4;
+        background: #070a10;
+      }
+      .ps-layer-type-badge {
+        font-size: 9px;
+        width: 14px;
+        text-align: center;
+      }
+      .ps-layer-name {
+        flex: 1;
+        color: #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+      }
+      .ps-layer-stats {
+        font-size: 8px;
+        color: #64748b;
+      }
+      .ps-layer-solo-btn {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8px;
+        font-weight: 700;
+        background: transparent;
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        color: var(--accent-yellow);
         padding: 1px 4px;
         border-radius: 3px;
-        font-weight: 700;
-        flex-shrink: 0;
+        cursor: pointer;
       }
-      .badge-mouth { background: rgba(0, 255, 200, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 255, 200, 0.3); }
-      .badge-eye { background: rgba(234, 179, 8, 0.15); color: var(--accent-yellow); border: 1px solid rgba(234, 179, 8, 0.3); }
-      .badge-skinned { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+      .ps-layer-solo-btn:hover {
+        background: rgba(234, 179, 8, 0.2);
+      }
 
       /* Animation Roles & Badges */
       .role-badge {
@@ -828,13 +1019,14 @@
       </div>
 
       <div class="header-actions">
-        <select id="select-model-source" style="width: 160px;">
+        <select id="select-model-source" style="width: 190px;">
           <option value="default_miyu">Miyu (CH0145) [Built-in]</option>
+          <option value="default_arona">Arona (Chibi VRM) [Built-in]</option>
         </select>
-        <button class="btn" id="btn-load-glb" title="Chọn file GLB/GLTF từ máy tính">
-          <span style="color: var(--accent-cyan); font-weight: 700;">📁 OPEN GLB</span>
+        <button class="btn" id="btn-load-glb" title="Chọn file GLB/GLTF/VRM từ máy tính">
+          <span style="color: var(--accent-cyan); font-weight: 700;">📁 OPEN 3D/VRM</span>
         </button>
-        <input type="file" id="file-glb-input" accept=".glb,.gltf" style="display: none;">
+        <input type="file" id="file-glb-input" accept=".glb,.gltf,.vrm" style="display: none;">
 
         <label style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); margin-left: 4px;">ANIMATION:</label>
         <select id="select-animation" style="width: 210px;"></select>
@@ -895,6 +1087,7 @@
         <div class="sidebar-tabs">
           <div class="sidebar-tab-btn active" data-tab="timeline">TIMELINE</div>
           <div class="sidebar-tab-btn" data-tab="palette">MOUTHS</div>
+          <div class="sidebar-tab-btn" data-tab="expressions" id="tab-btn-expressions" style="color: var(--accent-cyan);">EXPRESSIONS</div>
           <div class="sidebar-tab-btn" data-tab="roles">ROLES & AUDIO</div>
           <div class="sidebar-tab-btn" data-tab="layers">LAYERS</div>
           <div class="sidebar-tab-btn" data-tab="config">CONFIG & EXPORT</div>
@@ -993,6 +1186,77 @@
           </div>
         </div>
 
+        <!-- Tab: VRM Expressions & Mouth Studio -->
+        <div class="tab-content hidden" id="tab-expressions">
+          <!-- Mouth Vowels -->
+          <div class="section-title">
+            <span>VRM MOUTH VOWELS (NGUYÊN ÂM)</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn" id="btn-studio-vrm-talk" style="padding: 2px 8px; font-size: 10px; color: var(--accent-cyan); border-color: var(--accent-cyan); font-weight: 700;">
+                👄 AUTO TALK
+              </button>
+              <button class="btn" id="btn-studio-vrm-mouth-reset" style="padding: 2px 6px; font-size: 10px;">
+                REST (DEFAULT)
+              </button>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px;">
+              Chọn nhanh hoặc kéo thanh trượt để điều chỉnh khẩu hình miệng Arona VRM:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px;">
+              <button class="btn vrm-quick-vowel active" data-vowel="" style="justify-content: center; font-size: 10px;">REST</button>
+              <button class="btn vrm-quick-vowel" data-vowel="A" style="justify-content: center; font-size: 11px; font-weight: 700;">A</button>
+              <button class="btn vrm-quick-vowel" data-vowel="I" style="justify-content: center; font-size: 11px; font-weight: 700;">I</button>
+              <button class="btn vrm-quick-vowel" data-vowel="U" style="justify-content: center; font-size: 11px; font-weight: 700;">U</button>
+              <button class="btn vrm-quick-vowel" data-vowel="E" style="justify-content: center; font-size: 11px; font-weight: 700;">E</button>
+              <button class="btn vrm-quick-vowel" data-vowel="O" style="justify-content: center; font-size: 11px; font-weight: 700;">O</button>
+            </div>
+            <div id="vrm-vowels-sliders-list" style="display: flex; flex-direction: column; gap: 6px;">
+              <!-- Dynamic Vowel Sliders -->
+            </div>
+          </div>
+
+          <!-- Facial Expressions -->
+          <div class="section-title" style="margin-top: 6px;">
+            <span>FACIAL EXPRESSIONS (BIỂU CẢM MẶT)</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn" id="btn-studio-vrm-blink" style="padding: 2px 8px; font-size: 10px; color: var(--accent-yellow); border-color: var(--accent-yellow); font-weight: 700;">
+                👁 AUTO BLINK
+              </button>
+              <button class="btn" id="btn-studio-vrm-reset-all" style="padding: 2px 6px; font-size: 10px; color: var(--accent-pink);">
+                ⟲ RESET ALL
+              </button>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <!-- Quick preset buttons -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px;">
+              <button class="btn vrm-exp-preset active" data-exp="Neutral">NEUTRAL</button>
+              <button class="btn vrm-exp-preset" data-exp="Joy">JOY</button>
+              <button class="btn vrm-exp-preset" data-exp="Angry">ANGRY</button>
+              <button class="btn vrm-exp-preset" data-exp="Sorrow">SORROW</button>
+              <button class="btn vrm-exp-preset" data-exp="Fun">FUN</button>
+              <button class="btn vrm-exp-preset" data-exp="Smug">SMUG</button>
+              <button class="btn vrm-exp-preset" data-exp="Love">LOVE</button>
+              <button class="btn vrm-exp-preset" data-exp="Blink">BLINK</button>
+              <button class="btn vrm-exp-preset" data-exp="Afraid">AFRAID</button>
+              <button class="btn vrm-exp-preset" data-exp="Dizzy">DIZZY</button>
+              <button class="btn vrm-exp-preset" data-exp="Dumb">DUMB</button>
+              <button class="btn vrm-exp-preset" data-exp="Excited">EXCITED</button>
+            </div>
+
+            <div class="section-title" style="font-size: 9px; margin-bottom: 4px;">
+              <span>FINE-TUNE SLIDERS (TÙY CHỈNH TỪNG NÉT MẶT)</span>
+            </div>
+            <div id="vrm-expressions-sliders-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding-right: 4px;">
+              <!-- Dynamic Expression Sliders -->
+            </div>
+          </div>
+        </div>
+
         <!-- Tab 3: Animation Roles & Audio Configuration -->
         <div class="tab-content hidden" id="tab-roles">
           <!-- 1. Current Animation Role Tagging -->
@@ -1076,23 +1340,67 @@
           </div>
         </div>
 
-        <!-- Tab 4: Model Layers & Meshes Inspector -->
+        <!-- Tab 4: Model Layers & Meshes Inspector (Photoshop-like) -->
         <div class="tab-content hidden" id="tab-layers">
+          <!-- 1. Exploded View (Tách rời các Layer 3D trong không gian) -->
           <div class="section-title">
-            <span>MODEL LAYERS (<span id="lbl-layers-count">0</span> MESHES)</span>
+            <span>EXPLODED VIEW (TÁCH LỚP 3D)</span>
+            <span style="font-size: 11px; font-weight: 700; color: var(--accent-cyan);" id="val-explode-dist">0.00m</span>
+          </div>
+          <div class="control-card" style="margin-bottom: 8px;">
+            <input type="range" id="input-explode-dist" min="0" max="1.5" step="0.02" value="0" style="width: 100%; margin-bottom: 6px;">
             <div style="display: flex; gap: 4px;">
-              <button class="btn" id="btn-layers-show-all" style="padding: 2px 6px; font-size: 9px; color: var(--accent-cyan);">SHOW ALL</button>
-              <button class="btn" id="btn-layers-hide-all" style="padding: 2px 6px; font-size: 9px; color: var(--accent-pink);">HIDE ALL</button>
-              <button class="btn" id="btn-layers-invert" style="padding: 2px 6px; font-size: 9px; color: var(--accent-yellow);">INVERT</button>
+              <button class="btn btn-explode-preset" data-dist="0" style="flex: 1; padding: 2px 4px; font-size: 9px;">REST (0m)</button>
+              <button class="btn btn-explode-preset" data-dist="0.2" style="flex: 1; padding: 2px 4px; font-size: 9px;">0.2m</button>
+              <button class="btn btn-explode-preset" data-dist="0.5" style="flex: 1; padding: 2px 4px; font-size: 9px;">0.5m</button>
+              <button class="btn btn-explode-preset" data-dist="1.0" style="flex: 1; padding: 2px 4px; font-size: 9px;">1.0m</button>
+              <button class="btn" id="btn-reset-explode" style="padding: 2px 6px; font-size: 9px; color: var(--accent-pink);">⟲</button>
             </div>
           </div>
 
-          <div style="margin-bottom: 4px;">
-            <input type="text" id="input-search-layers" placeholder="Filter mesh name (e.g. Hair, Face, Body)..." style="width: 100%; font-size: 10px; height: 26px;">
+          <!-- 2. Photoshop Toolbar (Search + Batch Tools) -->
+          <div class="ps-toolbar">
+            <div class="ps-search-wrap">
+              <input type="text" id="input-search-layers" class="ps-search-input" placeholder="🔍 Tìm mesh (face, hair, halo, c_top)...">
+              <span id="btn-clear-layer-search" class="ps-search-clear" style="display: none;">✕</span>
+            </div>
+            <button class="ps-btn" id="btn-cat-show-all" title="Hiện tất cả layer">👁</button>
+            <button class="ps-btn" id="btn-cat-hide-all" title="Ẩn tất cả layer">🚫</button>
+            <button class="ps-btn" id="btn-cat-invert" title="Đảo ngược hiển thị">⇄</button>
+            <button class="ps-btn" id="btn-folders-expand-all" title="Mở rộng tất cả folder">📂</button>
+            <button class="ps-btn" id="btn-folders-collapse-all" title="Thu gọn tất cả folder">📁</button>
           </div>
 
-          <div class="layers-list" id="layers-container">
-            <!-- Rendered dynamically -->
+          <!-- 3. Category Filter Chips -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; margin-bottom: 6px;">
+            <button class="btn layer-cat-btn active" data-cat="all" style="justify-content: center; font-size: 9px; font-weight: 700;">ALL (<span id="lbl-cat-all-count">0</span>)</button>
+            <button class="btn layer-cat-btn" data-cat="face" style="justify-content: center; font-size: 9px;">📁 FACE</button>
+            <button class="btn layer-cat-btn" data-cat="hair" style="justify-content: center; font-size: 9px;">📁 HAIR</button>
+            <button class="btn layer-cat-btn" data-cat="halo" style="justify-content: center; font-size: 9px;">📁 HALO</button>
+            <button class="btn layer-cat-btn" data-cat="clothes" style="justify-content: center; font-size: 9px;">📁 CLOTHES</button>
+            <button class="btn layer-cat-btn" data-cat="body" style="justify-content: center; font-size: 9px;">📁 BODY</button>
+          </div>
+
+          <!-- 4. Photoshop Active Layer Inspector (Opacity & Tools) -->
+          <div class="ps-inspector-bar" id="ps-inspector-bar" style="display: none; margin-bottom: 6px;">
+            <div class="ps-inspector-header">
+              <span class="ps-inspector-name" id="ps-selected-layer-name">SELECTED: Mesh</span>
+              <div style="display: flex; gap: 4px;">
+                <button class="ps-btn" id="btn-inspect-solo" style="color: var(--accent-yellow); font-size: 9px; padding: 1px 5px;">★ SOLO</button>
+                <button class="ps-btn" id="btn-inspect-toggle-vis" style="font-size: 9px; padding: 1px 5px;">👁 TOGGLE</button>
+                <button class="ps-btn" id="btn-inspect-focus" style="color: var(--accent-cyan); font-size: 9px; padding: 1px 5px;">🎯 FOCUS</button>
+              </div>
+            </div>
+            <div class="ps-inspector-opacity-row">
+              <span>OPACITY:</span>
+              <input type="range" id="input-layer-opacity" min="0" max="100" step="1" value="100" style="width: 100%;">
+              <span id="lbl-layer-opacity" style="color: #fff; font-weight: 700; text-align: right;">100%</span>
+            </div>
+          </div>
+
+          <!-- 5. Photoshop Collapsible Folders Tree -->
+          <div class="ps-tree-container" id="layers-container">
+            <!-- Populated dynamically as Photoshop Folders & Layer Rows -->
           </div>
         </div>
 
@@ -1272,6 +1580,309 @@
     let mouthTexture = null;
     let mouthMaterial = null;
     let activeMouthValue = 0; // Number (0..60) or String ('e0'..'e129')
+
+    // VRM & Layer Separation States
+    const ARONA_MODEL_SRC = './assets/models/arona/arona.vrm';
+    let vrmController = null;
+    let isCurrentVRM = false;
+    let currentExplodeDistance = 0.0;
+    let currentLayerCategory = 'all';
+    let highlightedMesh = null;
+    let origMeshColorMap = new Map();
+
+    // Embedded VRM 0.X BlendShape & Material Controller
+    class VRMExpressionController {
+      constructor(gltf, options = {}) {
+        this.gltf = gltf;
+        this.root = gltf.scene || gltf;
+        this.options = options;
+
+        this.vrmData = (gltf.parser && gltf.parser.json && gltf.parser.json.extensions && gltf.parser.json.extensions.VRM) ||
+                       (gltf.userData && gltf.userData.gltfExtensions && gltf.userData.gltfExtensions.VRM) || null;
+
+        this.blendShapeGroups = (this.vrmData && this.vrmData.blendShapeMaster && this.vrmData.blendShapeMaster.blendShapeGroups) || [];
+        this.groupMap = new Map();
+        this.presetMap = new Map();
+
+        this.meshByIndex = new Map();
+        this.meshByName = new Map();
+        this.materialsByName = new Map();
+        this.baseMaterialStates = new Map();
+
+        this.activeWeights = new Map();
+        this.currentVowel = null;
+
+        this.autoBlinkActive = false;
+        this.autoBlinkTimer = null;
+        this.lipSyncActive = false;
+        this.lipSyncTimer = null;
+
+        this.init();
+      }
+
+      init() {
+        const gltfMeshes = (this.gltf.parser && this.gltf.parser.json && this.gltf.parser.json.meshes) || [];
+        const gltfNodes = (this.gltf.parser && this.gltf.parser.json && this.gltf.parser.json.nodes) || [];
+        const meshNameMap = new Map();
+        gltfMeshes.forEach((gm, idx) => { if (gm.name) meshNameMap.set(gm.name, idx); });
+        const nodeMeshMap = new Map();
+        gltfNodes.forEach((nd) => { if (nd.name && nd.mesh !== undefined) nodeMeshMap.set(nd.name, nd.mesh); });
+
+        let meshCounter = 0;
+        this.root.traverse((obj) => {
+          if (obj.isMesh) {
+            this.meshByName.set(obj.name, obj);
+
+            let gIdx = undefined;
+            if (this.gltf.parser && this.gltf.parser.associations) {
+              const assoc = this.gltf.parser.associations.get(obj);
+              if (assoc && assoc.meshes !== undefined) gIdx = assoc.meshes;
+            }
+            if (gIdx === undefined && nodeMeshMap.has(obj.name)) {
+              gIdx = nodeMeshMap.get(obj.name);
+            }
+            if (gIdx === undefined && meshNameMap.has(obj.name)) {
+              gIdx = meshNameMap.get(obj.name);
+            }
+            if (gIdx === undefined) {
+              gIdx = meshCounter;
+            }
+            meshCounter++;
+
+            if (!this.meshByIndex.has(gIdx)) this.meshByIndex.set(gIdx, []);
+            this.meshByIndex.get(gIdx).push(obj);
+
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach((mat) => {
+              if (!mat || !mat.name) return;
+              if (!this.materialsByName.has(mat.name)) this.materialsByName.set(mat.name, []);
+              const list = this.materialsByName.get(mat.name);
+              if (!list.includes(mat)) list.push(mat);
+            });
+          }
+        });
+
+        this.blendShapeGroups.forEach((group) => {
+          const nameKey = (group.name || '').toLowerCase();
+          this.groupMap.set(nameKey, group);
+          if (group.presetName) this.presetMap.set(group.presetName.toLowerCase(), group);
+        });
+
+        this.materialsByName.forEach((matList, name) => {
+          matList.forEach((mat) => {
+            mat.transparent = true;
+            mat.depthWrite = true;
+            mat.alphaTest = 0.01;
+
+            let defAlpha = (mat.opacity !== undefined ? mat.opacity : 1.0);
+            if (name.startsWith('tex_m_') && name !== 'tex_m_smile') {
+              defAlpha = 0.0;
+              mat.opacity = 0.0;
+              mat.visible = false;
+            } else if (name.startsWith('tex_halo_') && name !== 'tex_halo_normal') {
+              defAlpha = 0.0;
+              mat.opacity = 0.0;
+              mat.visible = false;
+            } else if (name === 'tex_m_smile' || name === 'tex_halo_normal') {
+              defAlpha = 1.0;
+              mat.opacity = 1.0;
+              mat.visible = true;
+            }
+
+            if (!this.baseMaterialStates.has(mat)) {
+              this.baseMaterialStates.set(mat, {
+                color: mat.color ? mat.color.clone() : new THREE.Color(1, 1, 1),
+                opacity: defAlpha,
+                visible: defAlpha > 0.01,
+                origAlpha: defAlpha
+              });
+            }
+          });
+        });
+
+        this.resetAll();
+      }
+
+      findGroup(nameOrPreset) {
+        if (!nameOrPreset) return null;
+        const key = String(nameOrPreset).toLowerCase().trim();
+        return this.groupMap.get(key) || this.presetMap.get(key) || null;
+      }
+
+      setValue(nameOrPreset, weight = 1.0) {
+        const group = this.findGroup(nameOrPreset);
+        if (!group) return false;
+
+        const clampedWeight = Math.max(0.0, Math.min(1.0, weight));
+        this.activeWeights.set(group.name, clampedWeight);
+
+        if (group.binds && group.binds.length > 0) {
+          group.binds.forEach((bind) => {
+            const meshes = this.meshByIndex.get(bind.mesh);
+            if (meshes && meshes.length > 0) {
+              meshes.forEach((mesh) => {
+                if (mesh.morphTargetInfluences && mesh.morphTargetInfluences.length > bind.index) {
+                  mesh.morphTargetInfluences[bind.index] = clampedWeight * (bind.weight / 100);
+                }
+              });
+            }
+          });
+        }
+
+        if (group.materialValues && group.materialValues.length > 0) {
+          group.materialValues.forEach((mv) => {
+            const mats = this.materialsByName.get(mv.materialName);
+            if (!mats) return;
+
+            mats.forEach((mat) => {
+              const base = this.baseMaterialStates.get(mat);
+              if (!base) return;
+
+              if (mv.propertyName === '_Color' && Array.isArray(mv.targetValue)) {
+                const [tr, tg, tb, ta] = mv.targetValue;
+                const finalAlpha = (1.0 - clampedWeight) * base.origAlpha + clampedWeight * ta;
+                mat.opacity = finalAlpha;
+                mat.visible = finalAlpha > 0.01;
+                mat.needsUpdate = true;
+
+                if (mat.color && (tr > 0 || tg > 0 || tb > 0)) {
+                  mat.color.setRGB(
+                    (1.0 - clampedWeight) * base.color.r + clampedWeight * tr,
+                    (1.0 - clampedWeight) * base.color.g + clampedWeight * tg,
+                    (1.0 - clampedWeight) * base.color.b + clampedWeight * tb
+                  );
+                }
+              }
+            });
+          });
+        }
+        return true;
+      }
+
+      resetAll() {
+        this.activeWeights.clear();
+        this.currentVowel = null;
+
+        this.meshByName.forEach((mesh) => {
+          if (mesh.morphTargetInfluences) {
+            for (let i = 0; i < mesh.morphTargetInfluences.length; i++) mesh.morphTargetInfluences[i] = 0;
+          }
+        });
+
+        this.baseMaterialStates.forEach((base, mat) => {
+          if (base.color && mat.color) mat.color.copy(base.color);
+          mat.opacity = base.opacity;
+          mat.visible = base.visible;
+          mat.needsUpdate = true;
+        });
+
+        this.materialsByName.forEach((mats, name) => {
+          if (name.startsWith('tex_m_')) {
+            const isDefaultSmile = name === 'tex_m_smile';
+            mats.forEach((m) => {
+              m.opacity = isDefaultSmile ? 1.0 : 0.0;
+              m.visible = isDefaultSmile;
+              m.needsUpdate = true;
+            });
+          }
+          if (name.startsWith('tex_halo_')) {
+            const isDefaultHalo = name === 'tex_halo_normal';
+            mats.forEach((m) => {
+              m.opacity = isDefaultHalo ? 1.0 : 0.0;
+              m.visible = isDefaultHalo;
+              m.needsUpdate = true;
+            });
+          }
+        });
+      }
+
+      setMouthVowel(vowel, weight = 1.0) {
+        const vowels = ['A', 'I', 'U', 'E', 'O'];
+        vowels.forEach((v) => {
+          if (!vowel || v.toUpperCase() !== vowel.toUpperCase()) this.setValue(v, 0.0);
+        });
+
+        if (vowel && vowels.includes(vowel.toUpperCase())) {
+          this.currentVowel = vowel.toUpperCase();
+          this.setValue(this.currentVowel, weight);
+        } else {
+          this.currentVowel = null;
+          const smileMats = this.materialsByName.get('tex_m_smile');
+          if (smileMats) {
+            smileMats.forEach((m) => {
+              m.opacity = 1.0;
+              m.visible = true;
+              m.needsUpdate = true;
+            });
+          }
+        }
+      }
+
+      setExpression(presetOrName, weight = 1.0) {
+        const vowels = ['A', 'I', 'U', 'E', 'O'];
+        this.blendShapeGroups.forEach((g) => {
+          if (!vowels.includes(g.name.toUpperCase())) {
+            if (g.name.toLowerCase() !== presetOrName.toLowerCase()) this.setValue(g.name, 0.0);
+          }
+        });
+        return this.setValue(presetOrName, weight);
+      }
+
+      startAutoBlink() {
+        this.stopAutoBlink();
+        this.autoBlinkActive = true;
+        const performBlink = () => {
+          if (!this.autoBlinkActive) return;
+          this.setValue('Blink', 1.0);
+          setTimeout(() => {
+            if (this.autoBlinkActive) this.setValue('Blink', 0.0);
+            const nextInterval = 2500 + Math.random() * 3000;
+            this.autoBlinkTimer = setTimeout(performBlink, nextInterval);
+          }, 140);
+        };
+        this.autoBlinkTimer = setTimeout(performBlink, 2000);
+      }
+
+      stopAutoBlink() {
+        this.autoBlinkActive = false;
+        clearTimeout(this.autoBlinkTimer);
+        this.autoBlinkTimer = null;
+        this.setValue('Blink', 0.0);
+      }
+
+      startLipSyncTest(speedMs = 180) {
+        this.stopLipSyncTest();
+        this.lipSyncActive = true;
+        const seq = ['A', 'I', 'U', 'E', 'O', 'A', 'E', 'O', 'Neutral'];
+        let idx = 0;
+        const cycle = () => {
+          if (!this.lipSyncActive) return;
+          const target = seq[idx % seq.length];
+          idx++;
+          if (target === 'Neutral') this.setMouthVowel(null);
+          else this.setMouthVowel(target, 0.6 + Math.random() * 0.4);
+          this.lipSyncTimer = setTimeout(cycle, speedMs + (Math.random() * 60 - 30));
+        };
+        cycle();
+      }
+
+      stopLipSyncTest() {
+        this.lipSyncActive = false;
+        clearTimeout(this.lipSyncTimer);
+        this.lipSyncTimer = null;
+        this.setMouthVowel(null);
+      }
+
+      dispose() {
+        this.stopAutoBlink();
+        this.stopLipSyncTest();
+        this.resetAll();
+        this.meshByIndex.clear();
+        this.meshByName.clear();
+        this.materialsByName.clear();
+        this.baseMaterialStates.clear();
+      }
+    }
 
     // Camera 4-Side Views State (Xem tứ phía)
     let isTransitioningCam = false;
@@ -1527,7 +2138,7 @@
       });
     }
 
-    // 4. Load GLB Model & Setup Mouth Mesh Material Isolation
+    // 4. Load GLB / VRM Model & Setup Mouth Mesh Material Isolation
     function loadGLBModel(url = DEFAULT_MODEL_SRC, fileName = 'Miyu.glb') {
       currentModelSrc = url;
       currentModelFileName = fileName;
@@ -1543,6 +2154,10 @@
             mixer.stopAllAction();
             mixer.uncacheRoot(modelRoot);
           }
+          if (vrmController) {
+            vrmController.dispose();
+            vrmController = null;
+          }
           modelRoot.traverse((c) => {
             if (c.geometry) c.geometry.dispose();
             if (c.material) {
@@ -1556,14 +2171,20 @@
         modelRoot = gltf.scene;
         modelMeshes = [];
 
+        // Check if model is VRM
+        const isVRMFile = fileName.toLowerCase().endsWith('.vrm') || url.toLowerCase().includes('.vrm') ||
+          !!(gltf.parser?.json?.extensions?.VRM) || !!(gltf.userData?.gltfExtensions?.VRM);
+        isCurrentVRM = isVRMFile;
+
         // Auto Scale & Bounding Box Calculation
         const bbox = new THREE.Box3().setFromObject(modelRoot);
         const size = bbox.getSize(new THREE.Vector3());
         console.log(`[Studio] Model "${fileName}" raw bounds:`, size);
 
-        // Chibi models in Blue Archive (like Miyu) have raw height ~0.0136m -> need x100 scale
-        let scaleFactor = 100;
-        if (size.y < 0.1) {
+        let scaleFactor = 1.0;
+        if (isVRMFile) {
+          scaleFactor = 1.0;
+        } else if (size.y < 0.1) {
           scaleFactor = 100;
         } else if (size.y > 10) {
           scaleFactor = 0.01;
@@ -1576,53 +2197,110 @@
 
         // Update metadata based on loaded file
         const baseName = fileName.replace(/\.[^/.]+$/, "");
-        if (fileName !== 'Miyu.glb') {
+        if (isVRMFile) {
+          characterConfig.id = 'Arona';
+          characterConfig.name = 'ARONA // CHIBI VRM';
+          characterConfig.subtitle = 'assets/models/arona/arona.vrm';
+          characterConfig.src = url;
+          characterConfig.scale = { x: 1, y: 1, z: 1 };
+          const titleEl = document.getElementById('lbl-studio-title');
+          if (titleEl) titleEl.textContent = 'ARONA // VRM EXPRESSIONS & 3D STUDIO';
+        } else if (fileName !== 'Miyu.glb') {
           characterConfig.id = baseName;
           characterConfig.name = `${baseName.toUpperCase()} // MODEL`;
           characterConfig.subtitle = `assets/models/${baseName}/${fileName}`;
-          characterConfig.src = `./assets/models/${baseName}/${fileName}`;
+          characterConfig.src = url;
           characterConfig.scale = { x: scaleFactor, y: scaleFactor, z: scaleFactor };
           const titleEl = document.getElementById('lbl-studio-title');
           if (titleEl) titleEl.textContent = `${baseName.toUpperCase()} // ANIMATION & MOUTH SYNC`;
+        } else {
+          characterConfig.id = 'Miyu';
+          characterConfig.name = 'MIYU // MODEL';
+          characterConfig.subtitle = 'assets/models/miyu/Miyu.glb';
+          characterConfig.src = DEFAULT_MODEL_SRC;
+          characterConfig.scale = { x: 100, y: 100, z: 100 };
+          const titleEl = document.getElementById('lbl-studio-title');
+          if (titleEl) titleEl.textContent = 'MIYU // ANIMATION & MOUTH SYNC';
         }
 
-        // Find and isolate mouth material (keeping eye mesh untouched)
+        // Find meshes and isolate mouth material for standard models
         modelRoot.traverse((child) => {
           if (child.isMesh && child.material) {
             modelMeshes.push(child);
 
-            const isFaceOutline = child.name.includes('Face_Outline') || (child.parent && child.parent.name.includes('Face_Outline'));
-            if (isFaceOutline) {
-              child.userData.isEyeMesh = true;
-              return; // KEEP EYE MESH UNTOUCHED
-            }
+            if (!isVRMFile) {
+              const isFaceOutline = child.name.includes('Face_Outline') || (child.parent && child.parent.name.includes('Face_Outline'));
+              if (isFaceOutline) {
+                child.userData.isEyeMesh = true;
+                return;
+              }
 
-            const idxCount = child.geometry?.index ? child.geometry.index.count : 0;
-            const currentMats = Array.isArray(child.material) ? child.material : [child.material];
-            const hasEyeMouth = currentMats.some(m => m && (m.name.includes('EyeMouth') || m.name.includes('Mouth')));
+              const idxCount = child.geometry?.index ? child.geometry.index.count : 0;
+              const currentMats = Array.isArray(child.material) ? child.material : [child.material];
+              const hasEyeMouth = currentMats.some(m => m && (m.name.includes('EyeMouth') || m.name.includes('Mouth')));
 
-            if (idxCount === 96 || (hasEyeMouth && !isFaceOutline)) {
-              child.userData.isMouthMesh = true;
-
-              // Clone isolated material
-              const baseMat = Array.isArray(child.material) ? child.material[0] : child.material;
-              mouthMaterial = baseMat.clone();
-              mouthMaterial.name = `${baseName}_Mouth_Dynamic`;
-              mouthMaterial.map = mouthTexture;
-              mouthMaterial.transparent = true;
-              mouthMaterial.opacity = 1.0;
-              mouthMaterial.depthWrite = true;
-              mouthMaterial.alphaTest = 0.02;
-              mouthMaterial.side = THREE.DoubleSide;
-              child.material = mouthMaterial;
+              if (idxCount === 96 || (hasEyeMouth && !isFaceOutline)) {
+                child.userData.isMouthMesh = true;
+                const baseMat = Array.isArray(child.material) ? child.material[0] : child.material;
+                mouthMaterial = baseMat.clone();
+                mouthMaterial.name = `${baseName}_Mouth_Dynamic`;
+                mouthMaterial.map = mouthTexture;
+                mouthMaterial.transparent = true;
+                mouthMaterial.opacity = 1.0;
+                mouthMaterial.depthWrite = true;
+                mouthMaterial.alphaTest = 0.02;
+                mouthMaterial.side = THREE.DoubleSide;
+                child.material = mouthMaterial;
+              }
             }
           }
         });
 
-        // Apply initial Flat Shader
-        applyFlatShader(flatShader);
+        // Initialize Exploded View vectors for all meshes
+        const modelBbox = new THREE.Box3().setFromObject(modelRoot);
+        const modelCenter = modelBbox.getCenter(new THREE.Vector3());
+        modelMeshes.forEach((mesh) => {
+          mesh.userData.origPos = mesh.position.clone();
+          const meshBbox = new THREE.Box3().setFromObject(mesh);
+          const meshCenter = meshBbox.getCenter(new THREE.Vector3());
+          const dir = meshCenter.clone().sub(modelCenter);
+          if (dir.lengthSq() < 0.0001) {
+            dir.set(0, 0, 1);
+          } else {
+            dir.normalize();
+          }
+          mesh.userData.explodeDir = dir;
+        });
+        currentExplodeDistance = 0.0;
+        const inputExplode = document.getElementById('input-explode-dist');
+        if (inputExplode) inputExplode.value = '0';
+        const lblExplode = document.getElementById('val-explode-dist');
+        if (lblExplode) lblExplode.textContent = '0.00m';
+
+        // Apply initial Flat Shader ONLY for non-VRM models (Miyu)
+        if (!isVRMFile) {
+          applyFlatShader(flatShader);
+        }
 
         scene.add(modelRoot);
+
+        // VRM Controller Setup
+        const tabExpBtn = document.getElementById('tab-btn-expressions');
+        if (isVRMFile) {
+          vrmController = new VRMExpressionController(gltf);
+          if (tabExpBtn) {
+            tabExpBtn.style.display = 'block';
+            tabExpBtn.click();
+          }
+          setupVRMStudioUI();
+          showToast(`VRM MODEL LOADED: ${vrmController.blendShapeGroups.length} EXPRESSIONS, ${modelMeshes.length} MESHES`);
+        } else {
+          if (vrmController) {
+            vrmController.dispose();
+            vrmController = null;
+          }
+          if (tabExpBtn) tabExpBtn.style.display = 'none';
+        }
 
         // Animation Mixer setup
         mixer = new THREE.AnimationMixer(modelRoot);
@@ -1640,19 +2318,23 @@
         updateConfigUI();
 
         // Pick clip to play
-        const defIdle = characterConfig.animations.defaultIdle;
-        const pickupClip = characterConfig.animations.pickup;
-        const startClip = animationClips.find(c => c.name === defIdle) ||
-                          animationClips.find(c => c.name === pickupClip) ||
-                          animationClips[0];
-        if (startClip) {
-          selectAnimation(startClip.name);
+        if (animationClips.length > 0) {
+          const defIdle = characterConfig.animations.defaultIdle;
+          const pickupClip = characterConfig.animations.pickup;
+          const startClip = animationClips.find(c => c.name === defIdle) ||
+                            animationClips.find(c => c.name === pickupClip) ||
+                            animationClips[0];
+          if (startClip) {
+            selectAnimation(startClip.name);
+          }
         }
 
-        showToast(`GLB "${fileName}" LOADED: ${animationClips.length} CLIPS, ${modelMeshes.length} MESHES`);
+        if (!isVRMFile) {
+          showToast(`GLB "${fileName}" LOADED: ${animationClips.length} CLIPS, ${modelMeshes.length} MESHES`);
+        }
       }, undefined, (err) => {
-        console.error('[Studio] GLB Load error:', err);
-        showToast(`LỖI LOAD GLB: ${err.message || 'Không đọc được file'}`);
+        console.error('[Studio] GLB/VRM Load error:', err);
+        showToast(`LỖI LOAD 3D MODEL: ${err.message || 'Không đọc được file'}`);
       });
     }
 
@@ -1921,61 +2603,292 @@
       }, 3200);
     }
 
-    // Model Layers / Meshes Inspector
+    // Model Layers / Meshes Inspector & Exploded View Engine
+    function getMeshCategory(mesh) {
+      const name = (mesh.name || '').toLowerCase();
+      if (/face|brow|eye|eb_|ey_|ex_|mouth|tex_m_|tex_ey|tex_eb|tex_ex/.test(name) || mesh.userData.isMouthMesh || mesh.userData.isEyeMesh) {
+        return 'face';
+      }
+      if (/hair|hr_|tex_hr/.test(name)) {
+        return 'hair';
+      }
+      if (/halo|bow|c_bow|hair_bow|tex_halo/.test(name)) {
+        return 'halo';
+      }
+      if (/c_|bottom|botom|top|shoes|bra|skirt|underwear|choker|cloth/.test(name)) {
+        return 'clothes';
+      }
+      return 'body';
+    }
+
+    function applyExplodeDistance(dist) {
+      currentExplodeDistance = dist;
+      const lbl = document.getElementById('val-explode-dist');
+      if (lbl) lbl.textContent = `${Number(dist).toFixed(2)}m`;
+
+      modelMeshes.forEach((mesh) => {
+        if (mesh.userData.origPos && mesh.userData.explodeDir) {
+          mesh.position.copy(mesh.userData.origPos).addScaledVector(mesh.userData.explodeDir, dist);
+        }
+      });
+    }
+
+    function highlightMesh3D(mesh, enable) {
+      if (!mesh || !mesh.material) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((m) => {
+        if (!m) return;
+        if (enable) {
+          if (!m.userData.origHighlightColor && m.color) {
+            m.userData.origHighlightColor = m.color.clone();
+          }
+          if (m.color) {
+            m.color.setRGB(0.1, 0.95, 0.85); // glowing cyan highlight
+          }
+        } else if (m.userData.origHighlightColor && m.color) {
+          m.color.copy(m.userData.origHighlightColor);
+        }
+      });
+    }
+
+    // Photoshop Layers Panel State
+    let selectedMeshIdx = null;
+    const folderOpenStates = {
+      face: true,
+      hair: true,
+      halo: true,
+      clothes: true,
+      body: true
+    };
+
+    function getMeshTypeIcon(mesh, cat) {
+      if (mesh.userData.isMouthMesh) return '👄';
+      if (mesh.userData.isEyeMesh) return '👁';
+      if (cat === 'face') return '🙂';
+      if (cat === 'hair') return '💈';
+      if (cat === 'halo') return '✨';
+      if (cat === 'clothes') return '👔';
+      if (mesh.isSkinnedMesh) return '🦴';
+      return '📦';
+    }
+
+    function selectLayer(idx) {
+      selectedMeshIdx = idx;
+      const mesh = modelMeshes[idx];
+      const bar = document.getElementById('ps-inspector-bar');
+      if (!bar) return;
+
+      if (!mesh) {
+        bar.style.display = 'none';
+        return;
+      }
+
+      bar.style.display = 'block';
+      const nameEl = document.getElementById('ps-selected-layer-name');
+      const meshName = mesh.name || `Mesh_${idx}`;
+      if (nameEl) nameEl.textContent = `LAYER: ${meshName}`;
+
+      let currentOpacity = 1.0;
+      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (mat && mat.opacity !== undefined) currentOpacity = mat.opacity;
+
+      const opInput = document.getElementById('input-layer-opacity');
+      const opLbl = document.getElementById('lbl-layer-opacity');
+      const pct = Math.round(currentOpacity * 100);
+      if (opInput) opInput.value = pct;
+      if (opLbl) opLbl.textContent = `${pct}%`;
+
+      document.querySelectorAll('.ps-layer-row').forEach(r => {
+        r.classList.toggle('selected', r.getAttribute('data-mesh-idx') === String(idx));
+      });
+    }
+
+    function setMeshOpacity(meshIdx, opacity01) {
+      const mesh = modelMeshes[meshIdx];
+      if (!mesh || !mesh.material) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach(m => {
+        m.transparent = true;
+        m.opacity = Math.max(0.0, Math.min(1.0, opacity01));
+        m.needsUpdate = true;
+      });
+    }
+
+    function focusMesh3D(meshIdx) {
+      const mesh = modelMeshes[meshIdx];
+      if (!mesh) return;
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      const center = bbox.getCenter(new THREE.Vector3());
+      controls.target.copy(center);
+      showToast(`FOCUS LAYER: ${mesh.name || 'Mesh_' + meshIdx}`);
+    }
+
+    function setFolderVisibility(cat, visible) {
+      modelMeshes.forEach((mesh) => {
+        if (getMeshCategory(mesh) === cat) {
+          mesh.visible = visible;
+        }
+      });
+      characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast(`${visible ? 'HIỆN' : 'ẨN'} FOLDER: ${cat.toUpperCase()}`);
+    }
+
+    function soloFolder(cat) {
+      modelMeshes.forEach((mesh) => {
+        mesh.visible = (getMeshCategory(mesh) === cat);
+      });
+      characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast(`SOLO FOLDER: ${cat.toUpperCase()}`);
+    }
+
+    function setCategoryVisibility(cat, visible) {
+      modelMeshes.forEach((mesh) => {
+        if (cat === 'all' || getMeshCategory(mesh) === cat) {
+          mesh.visible = visible;
+        }
+      });
+      characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast(`${visible ? 'HIỆN' : 'ẨN'} NHÓM: ${cat.toUpperCase()}`);
+    }
+
+    function soloCategory(cat) {
+      modelMeshes.forEach((mesh) => {
+        mesh.visible = (cat === 'all') ? true : (getMeshCategory(mesh) === cat);
+      });
+      characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
+      buildLayersList();
+      updateConfigUI();
+      showToast(`SOLO NHÓM: ${cat.toUpperCase()}`);
+    }
+
+    function setAllFoldersExpanded(expanded) {
+      Object.keys(folderOpenStates).forEach(k => folderOpenStates[k] = expanded);
+      buildLayersList();
+      showToast(expanded ? 'ĐÃ MỞ TẤT CẢ FOLDERS' : 'ĐÃ THU GỌN TẤT CẢ FOLDERS');
+    }
+
     function buildLayersList() {
       const container = document.getElementById('layers-container');
-      const countEl = document.getElementById('lbl-layers-count');
+      const allCountEl = document.getElementById('lbl-cat-all-count');
       if (!container) return;
       container.innerHTML = '';
-      if (countEl) countEl.textContent = modelMeshes.length;
+      if (allCountEl) allCountEl.textContent = modelMeshes.length;
 
       const query = (layerFilterQuery || '').toLowerCase().trim();
 
-      modelMeshes.forEach((mesh, idx) => {
-        const meshName = mesh.name || `Mesh_${idx}`;
-        if (query && !meshName.toLowerCase().includes(query)) return;
+      const folderDefs = [
+        { id: 'face', title: 'FACE & EXPRESSIONS', icon: '🙂' },
+        { id: 'hair', title: 'HAIR & BANGS', icon: '💈' },
+        { id: 'halo', title: 'HALO & ACCESSORIES', icon: '✨' },
+        { id: 'clothes', title: 'CLOTHES & OUTFIT', icon: '👔' },
+        { id: 'body', title: 'BODY & RIG', icon: '🦴' }
+      ];
 
-        const isVisible = mesh.visible !== false;
-        const item = document.createElement('div');
-        item.className = `layer-item ${isVisible ? '' : 'hidden-mesh'}`;
+      folderDefs.forEach(folder => {
+        if (currentLayerCategory !== 'all' && currentLayerCategory !== folder.id) return;
 
-        const isMouth = !!mesh.userData.isMouthMesh;
-        const isEye = !!mesh.userData.isEyeMesh;
-        const isSkinned = mesh.isSkinnedMesh;
+        const catMeshes = [];
+        modelMeshes.forEach((mesh, idx) => {
+          if (getMeshCategory(mesh) === folder.id) {
+            const meshName = mesh.name || `Mesh_${idx}`;
+            if (!query || meshName.toLowerCase().includes(query)) {
+              catMeshes.push({ mesh, idx });
+            }
+          }
+        });
 
-        let badgeHtml = '';
-        if (isMouth) badgeHtml += '<span class="layer-badge badge-mouth">MOUTH</span>';
-        if (isEye) badgeHtml += '<span class="layer-badge badge-eye">OUTLINE</span>';
-        if (isSkinned) badgeHtml += '<span class="layer-badge badge-skinned">SKIN</span>';
+        if (catMeshes.length === 0 && query) return;
 
-        const vertCount = mesh.geometry?.attributes?.position?.count || 0;
-        const faceCount = mesh.geometry?.index ? Math.round(mesh.geometry.index.count / 3) : Math.round(vertCount / 3);
+        const allVisible = catMeshes.length > 0 && catMeshes.every(item => item.mesh.visible !== false);
+        const someVisible = catMeshes.some(item => item.mesh.visible !== false);
+        const isOpen = query ? true : !!folderOpenStates[folder.id];
 
-        item.innerHTML = `
-          <div class="layer-main">
-            <button class="btn btn-layer-vis" style="padding: 2px 5px; font-size: 11px; ${isVisible ? 'color: var(--accent-cyan);' : 'color: var(--text-muted);'}">
-              ${isVisible ? '👁' : '🚫'}
-            </button>
-            <div style="display: flex; flex-direction: column; overflow: hidden;">
-              <span class="layer-name" title="${meshName}">${meshName}</span>
-              <span class="layer-stats">${vertCount}v / ${faceCount}f</span>
-            </div>
-            ${badgeHtml}
-          </div>
-          <button class="btn btn-layer-solo" style="padding: 2px 6px; font-size: 9px; color: var(--accent-yellow);">SOLO</button>
+        const folderEl = document.createElement('div');
+        folderEl.className = `ps-folder ${isOpen ? 'open' : ''}`;
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'ps-folder-header';
+        headerEl.innerHTML = `
+          <span class="ps-folder-arrow">▶</span>
+          <button class="ps-eye-btn ${allVisible ? 'active' : (someVisible ? '' : 'hidden-eye')}" title="Toggle folder visibility">
+            ${someVisible ? '👁' : '🚫'}
+          </button>
+          <span class="ps-folder-icon">📁</span>
+          <span class="ps-folder-title">${folder.title}</span>
+          <span class="ps-folder-count">${catMeshes.length}</span>
+          <button class="ps-btn-solo-cat" title="Solo this folder">SOLO</button>
         `;
 
-        // Visibility toggle
-        item.querySelector('.btn-layer-vis').addEventListener('click', () => {
-          toggleMeshVisibility(idx);
+        headerEl.addEventListener('click', (e) => {
+          if (e.target.closest('.ps-eye-btn') || e.target.closest('.ps-btn-solo-cat')) return;
+          folderOpenStates[folder.id] = !folderOpenStates[folder.id];
+          folderEl.classList.toggle('open', folderOpenStates[folder.id]);
         });
 
-        // Solo toggle
-        item.querySelector('.btn-layer-solo').addEventListener('click', () => {
-          soloMesh(idx);
+        headerEl.querySelector('.ps-eye-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          setFolderVisibility(folder.id, !allVisible);
         });
 
-        container.appendChild(item);
+        headerEl.querySelector('.ps-btn-solo-cat').addEventListener('click', (e) => {
+          e.stopPropagation();
+          soloFolder(folder.id);
+        });
+
+        const bodyEl = document.createElement('div');
+        bodyEl.className = 'ps-folder-body';
+
+        catMeshes.forEach(({ mesh, idx }) => {
+          const meshName = mesh.name || `Mesh_${idx}`;
+          const isVisible = mesh.visible !== false;
+          const isSelected = (selectedMeshIdx === idx);
+          const typeIcon = getMeshTypeIcon(mesh, folder.id);
+
+          const vertCount = mesh.geometry?.attributes?.position?.count || 0;
+
+          const rowEl = document.createElement('div');
+          rowEl.className = `ps-layer-row ${isVisible ? '' : 'hidden-mesh'} ${isSelected ? 'selected' : ''}`;
+          rowEl.setAttribute('data-mesh-idx', idx);
+          rowEl.innerHTML = `
+            <button class="ps-eye-btn ps-layer-eye ${isVisible ? 'active' : 'hidden-eye'}" title="Toggle layer visibility">
+              ${isVisible ? '👁' : '🚫'}
+            </button>
+            <span class="ps-layer-type-badge">${typeIcon}</span>
+            <span class="ps-layer-name" title="${meshName}">${meshName}</span>
+            <span class="ps-layer-stats">${vertCount}v</span>
+            <button class="ps-layer-solo-btn" title="Solo this layer">SOLO</button>
+          `;
+
+          rowEl.addEventListener('click', (e) => {
+            if (e.target.closest('.ps-layer-eye') || e.target.closest('.ps-layer-solo-btn')) return;
+            selectLayer(idx);
+          });
+
+          rowEl.querySelector('.ps-layer-eye').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMeshVisibility(idx);
+          });
+
+          rowEl.querySelector('.ps-layer-solo-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            soloMesh(idx);
+          });
+
+          rowEl.addEventListener('mouseenter', () => highlightMesh3D(mesh, true));
+          rowEl.addEventListener('mouseleave', () => highlightMesh3D(mesh, false));
+
+          bodyEl.appendChild(rowEl);
+        });
+
+        folderEl.appendChild(headerEl);
+        folderEl.appendChild(bodyEl);
+        container.appendChild(folderEl);
       });
     }
 
@@ -2007,7 +2920,7 @@
       characterConfig.hiddenMeshes = modelMeshes.filter(m => !m.visible).map(m => m.name);
       buildLayersList();
       updateConfigUI();
-      showToast(`SOLO LAYER: ${targetMesh.name}`);
+      showToast(`SOLO LAYER: ${targetMesh.name || 'Mesh_' + meshIdx}`);
     }
 
     function setAllMeshesVisibility(visible) {
@@ -2028,6 +2941,66 @@
       buildLayersList();
       updateConfigUI();
       showToast('ĐÃ ĐẢO NGƯỢC HIỂN THỊ LAYERS');
+    }
+
+    // VRM Studio UI Population (Vowels & Expressions)
+    function setupVRMStudioUI() {
+      if (!vrmController) return;
+
+      // 1. Build Vowels Sliders
+      const vowelsContainer = document.getElementById('vrm-vowels-sliders-list');
+      if (vowelsContainer) {
+        vowelsContainer.innerHTML = '';
+        ['A', 'I', 'U', 'E', 'O'].forEach((v) => {
+          const row = document.createElement('div');
+          row.style.display = 'grid';
+          row.style.gridTemplateColumns = '30px 1fr 40px';
+          row.style.gap = '6px';
+          row.style.alignItems = 'center';
+          row.innerHTML = `
+            <span style="font-size: 11px; font-weight: 700; color: #fff;">${v}:</span>
+            <input type="range" class="vrm-vowel-slider" data-vowel="${v}" min="0" max="1" step="0.02" value="0" style="width: 100%;">
+            <span class="val-vrm-vowel-${v}" style="font-size: 10px; color: var(--accent-cyan);">0.00</span>
+          `;
+          const slider = row.querySelector('input');
+          slider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            row.querySelector(`.val-vrm-vowel-${v}`).textContent = val.toFixed(2);
+            vrmController.setValue(v, val);
+          });
+          vowelsContainer.appendChild(row);
+        });
+      }
+
+      // 2. Build Expression Sliders for ALL actual BlendShape groups in the VRM model!
+      const expContainer = document.getElementById('vrm-expressions-sliders-list');
+      if (expContainer) {
+        expContainer.innerHTML = '';
+        const vowels = ['A', 'I', 'U', 'E', 'O'];
+        const groups = (vrmController.blendShapeGroups || []).filter(g => !vowels.includes((g.name || '').toUpperCase()));
+
+        groups.forEach((g) => {
+          const name = g.name;
+          const isNeutral = (name.toLowerCase() === 'neutral');
+          const row = document.createElement('div');
+          row.style.display = 'grid';
+          row.style.gridTemplateColumns = '85px 1fr 40px';
+          row.style.gap = '6px';
+          row.style.alignItems = 'center';
+          row.innerHTML = `
+            <span style="font-size: 10px; font-weight: 600; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name}</span>
+            <input type="range" class="vrm-exp-slider" data-exp="${name}" min="0" max="1" step="0.02" value="${isNeutral ? '1' : '0'}" style="width: 100%;">
+            <span class="val-vrm-exp-${name}" style="font-size: 10px; color: var(--accent-cyan);">${isNeutral ? '1.00' : '0.00'}</span>
+          `;
+          const slider = row.querySelector('input');
+          slider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            row.querySelector(`.val-vrm-exp-${name}`).textContent = val.toFixed(2);
+            vrmController.setValue(name, val);
+          });
+          expContainer.appendChild(row);
+        });
+      }
     }
 
     // Character Config Generation & Export
@@ -2195,8 +3168,9 @@ export default ${varName};
 
     function handleGLBFileInput(file) {
       if (!file) return;
-      if (!file.name.endsWith('.glb') && !file.name.endsWith('.gltf')) {
-        showToast('Vui lòng chọn file định dạng .glb hoặc .gltf');
+      const lower = file.name.toLowerCase();
+      if (!lower.endsWith('.glb') && !lower.endsWith('.gltf') && !lower.endsWith('.vrm')) {
+        showToast('Vui lòng chọn file định dạng .glb, .gltf hoặc .vrm');
         return;
       }
       const blobUrl = URL.createObjectURL(file);
@@ -2247,7 +3221,7 @@ export default ${varName};
 
     // 5. Flat Shader Toggle
     function applyFlatShader(isFlat) {
-      if (!modelRoot) return;
+      if (!modelRoot || isCurrentVRM) return;
       modelRoot.traverse((child) => {
         if (child.isMesh && child.material) {
           if (child.userData.isMouthMesh) return; // Keep mouth material intact
@@ -2256,14 +3230,18 @@ export default ${varName};
             if (!child.userData.origMat) child.userData.origMat = child.material;
             const orig = child.userData.origMat;
             const mats = Array.isArray(orig) ? orig : [orig];
-            const flats = mats.map(m => new THREE.MeshBasicMaterial({
-              map: m.map || null,
-              color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
-              transparent: m.transparent !== undefined ? m.transparent : false,
-              opacity: m.opacity !== undefined ? m.opacity : 1.0,
-              alphaTest: m.alphaTest || 0,
-              side: m.side !== undefined ? m.side : THREE.FrontSide
-            }));
+            const flats = mats.map(m => {
+              const flatMat = new THREE.MeshBasicMaterial({
+                map: m.map || null,
+                color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
+                transparent: m.transparent !== undefined ? m.transparent : false,
+                opacity: m.opacity !== undefined ? m.opacity : 1.0,
+                alphaTest: m.alphaTest || 0,
+                side: m.side !== undefined ? m.side : THREE.FrontSide
+              });
+              flatMat.name = m.name || '';
+              return flatMat;
+            });
             child.material = Array.isArray(orig) ? flats : flats[0];
           } else if (child.userData.origMat) {
             child.material = child.userData.origMat;
@@ -2337,7 +3315,7 @@ export default ${varName};
 
     // 7. Evaluate Mouth shape based on mapped keyframe ranges
     function evaluateMouthAtTime(t) {
-      if (!currentClip) return;
+      if (!currentClip || isCurrentVRM) return;
       const timeline = animationMouthTimelines[currentClip.name];
       if (!timeline || timeline.length === 0) return;
 
@@ -3113,12 +4091,191 @@ export default ${varName};
         selModelSource.addEventListener('change', (e) => {
           if (e.target.value === 'default_miyu') {
             loadGLBModel(DEFAULT_MODEL_SRC, 'Miyu.glb');
+          } else if (e.target.value === 'default_arona') {
+            loadGLBModel(ARONA_MODEL_SRC, 'arona.vrm');
           } else {
             const chosenOpt = selModelSource.selectedOptions[0];
             loadGLBModel(e.target.value, chosenOpt ? chosenOpt.textContent.replace('📁 ', '') : 'custom.glb');
           }
         });
       }
+
+      // Exploded View Slider & Presets (Tách lớp 3D)
+      const inputExplode = document.getElementById('input-explode-dist');
+      if (inputExplode) {
+        inputExplode.addEventListener('input', (e) => {
+          applyExplodeDistance(parseFloat(e.target.value));
+        });
+      }
+      document.querySelectorAll('.btn-explode-preset').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const dist = parseFloat(e.currentTarget.getAttribute('data-dist') || '0');
+          if (inputExplode) inputExplode.value = String(dist);
+          applyExplodeDistance(dist);
+        });
+      });
+      document.getElementById('btn-reset-explode')?.addEventListener('click', () => {
+        if (inputExplode) inputExplode.value = '0';
+        applyExplodeDistance(0);
+        showToast('ĐÃ RESET EXPLODED VIEW VỀ 0');
+      });
+
+      // Photoshop Toolbar Search & Clear
+      const inputSearchLayers = document.getElementById('input-search-layers');
+      const btnClearSearch = document.getElementById('btn-clear-layer-search');
+      if (inputSearchLayers) {
+        inputSearchLayers.addEventListener('input', (e) => {
+          layerFilterQuery = e.target.value;
+          if (btnClearSearch) btnClearSearch.style.display = layerFilterQuery ? 'block' : 'none';
+          buildLayersList();
+        });
+      }
+      if (btnClearSearch) {
+        btnClearSearch.addEventListener('click', () => {
+          if (inputSearchLayers) inputSearchLayers.value = '';
+          layerFilterQuery = '';
+          btnClearSearch.style.display = 'none';
+          buildLayersList();
+        });
+      }
+
+      // Photoshop Toolbar Batch Tools
+      document.getElementById('btn-cat-show-all')?.addEventListener('click', () => setAllMeshesVisibility(true));
+      document.getElementById('btn-cat-hide-all')?.addEventListener('click', () => setAllMeshesVisibility(false));
+      document.getElementById('btn-cat-invert')?.addEventListener('click', () => invertMeshesVisibility());
+      document.getElementById('btn-folders-expand-all')?.addEventListener('click', () => setAllFoldersExpanded(true));
+      document.getElementById('btn-folders-collapse-all')?.addEventListener('click', () => setAllFoldersExpanded(false));
+
+      // Photoshop Category Filter Chips
+      document.querySelectorAll('.layer-cat-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.layer-cat-btn').forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          currentLayerCategory = e.currentTarget.getAttribute('data-cat') || 'all';
+          buildLayersList();
+          showToast(`LỌC NHÓM LAYER: ${currentLayerCategory.toUpperCase()}`);
+        });
+      });
+
+      // Photoshop Active Layer Inspector Actions
+      document.getElementById('input-layer-opacity')?.addEventListener('input', (e) => {
+        if (selectedMeshIdx !== null) {
+          const val = parseInt(e.target.value, 10);
+          const lbl = document.getElementById('lbl-layer-opacity');
+          if (lbl) lbl.textContent = `${val}%`;
+          setMeshOpacity(selectedMeshIdx, val / 100);
+        }
+      });
+      document.getElementById('btn-inspect-solo')?.addEventListener('click', () => {
+        if (selectedMeshIdx !== null) soloMesh(selectedMeshIdx);
+      });
+      document.getElementById('btn-inspect-toggle-vis')?.addEventListener('click', () => {
+        if (selectedMeshIdx !== null) toggleMeshVisibility(selectedMeshIdx);
+      });
+      document.getElementById('btn-inspect-focus')?.addEventListener('click', () => {
+        if (selectedMeshIdx !== null) focusMesh3D(selectedMeshIdx);
+      });
+
+      // VRM Studio Tab Listeners
+      document.querySelectorAll('.vrm-quick-vowel').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.vrm-quick-vowel').forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          const vowel = e.currentTarget.getAttribute('data-vowel') || null;
+          if (vrmController) {
+            vrmController.setMouthVowel(vowel, 1.0);
+            showToast(`MOUTH VOWEL: ${vowel ? vowel : 'REST'}`);
+            ['A', 'I', 'U', 'E', 'O'].forEach(v => {
+              const sl = document.querySelector(`.vrm-vowel-slider[data-vowel="${v}"]`);
+              if (sl) sl.value = (v === vowel) ? '1' : '0';
+              const lb = document.querySelector(`.val-vrm-vowel-${v}`);
+              if (lb) lb.textContent = (v === vowel) ? '1.0' : '0.0';
+            });
+          }
+        });
+      });
+
+      const btnTalk = document.getElementById('btn-studio-vrm-talk');
+      if (btnTalk) {
+        btnTalk.addEventListener('click', () => {
+          if (!vrmController) return;
+          if (vrmController.lipSyncActive) {
+            vrmController.stopLipSyncTest();
+            btnTalk.classList.remove('active');
+            btnTalk.textContent = '👄 AUTO TALK';
+            showToast('ĐÃ DỪNG TALK');
+          } else {
+            vrmController.startLipSyncTest(180);
+            btnTalk.classList.add('active');
+            btnTalk.textContent = '⏹ STOP TALK';
+            showToast('ARONA ĐANG NÓI CHUYỆN (LIP-SYNC)...');
+          }
+        });
+      }
+
+      document.getElementById('btn-studio-vrm-mouth-reset')?.addEventListener('click', () => {
+        if (vrmController) {
+          vrmController.setMouthVowel(null);
+          document.querySelectorAll('.vrm-quick-vowel').forEach(b => b.classList.toggle('active', !b.getAttribute('data-vowel')));
+          ['A', 'I', 'U', 'E', 'O'].forEach(v => {
+            const sl = document.querySelector(`.vrm-vowel-slider[data-vowel="${v}"]`);
+            if (sl) sl.value = '0';
+            const lb = document.querySelector(`.val-vrm-vowel-${v}`);
+            if (lb) lb.textContent = '0.0';
+          });
+          showToast('ĐÃ RESET KHẨU HÌNH MIỆNG');
+        }
+      });
+
+      const btnBlink = document.getElementById('btn-studio-vrm-blink');
+      if (btnBlink) {
+        btnBlink.addEventListener('click', () => {
+          if (!vrmController) return;
+          if (vrmController.autoBlinkActive) {
+            vrmController.stopAutoBlink();
+            btnBlink.classList.remove('active');
+            showToast('ĐÃ TẮT AUTO BLINK');
+          } else {
+            vrmController.startAutoBlink();
+            btnBlink.classList.add('active');
+            showToast('ĐÃ BẬT AUTO BLINK (CHỚP MẮT TỰ ĐỘNG)');
+          }
+        });
+      }
+
+      document.getElementById('btn-studio-vrm-reset-all')?.addEventListener('click', () => {
+        if (vrmController) {
+          vrmController.resetAll();
+          document.querySelectorAll('.vrm-exp-preset').forEach(b => b.classList.toggle('active', b.getAttribute('data-exp') === 'Neutral'));
+          document.querySelectorAll('.vrm-exp-slider').forEach(sl => {
+            const exp = sl.getAttribute('data-exp');
+            const isNeutral = (exp.toLowerCase() === 'neutral');
+            sl.value = isNeutral ? '1' : '0';
+            const lb = document.querySelector(`.val-vrm-exp-${exp}`);
+            if (lb) lb.textContent = isNeutral ? '1.00' : '0.00';
+          });
+          showToast('ĐÃ RESET TOÀN BỘ BIỂU CẢM VỀ NEUTRAL');
+        }
+      });
+
+      document.querySelectorAll('.vrm-exp-preset').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const exp = e.currentTarget.getAttribute('data-exp');
+          document.querySelectorAll('.vrm-exp-preset').forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          if (vrmController) {
+            vrmController.setExpression(exp, 1.0);
+            showToast(`EXPRESSION: ${exp.toUpperCase()}`);
+            document.querySelectorAll('.vrm-exp-slider').forEach(sl => {
+              const name = sl.getAttribute('data-exp');
+              const isActive = (name.toLowerCase() === exp.toLowerCase());
+              sl.value = isActive ? '1' : '0';
+              const lb = document.querySelector(`.val-vrm-exp-${name}`);
+              if (lb) lb.textContent = isActive ? '1.00' : '0.00';
+            });
+          }
+        });
+      });
 
       // Viewport Drag & Drop
       setupDragAndDrop();
@@ -3157,14 +4314,6 @@ export default ${varName};
         updateConfigUI();
       });
 
-      // Model Layers buttons
-      document.getElementById('btn-layers-show-all')?.addEventListener('click', () => setAllMeshesVisibility(true));
-      document.getElementById('btn-layers-hide-all')?.addEventListener('click', () => setAllMeshesVisibility(false));
-      document.getElementById('btn-layers-invert')?.addEventListener('click', () => invertMeshesVisibility());
-      document.getElementById('input-search-layers')?.addEventListener('input', (e) => {
-        layerFilterQuery = e.target.value;
-        buildLayersList();
-      });
 
       // Config & Export buttons
       const btnCfgJs = document.getElementById('btn-cfg-format-js');

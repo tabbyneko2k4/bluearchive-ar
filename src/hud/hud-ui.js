@@ -163,7 +163,8 @@ export function getHUDHTMLTemplate() {
 
         <!-- Panel 2: Telemetry & Controls -->
         <div class="bento-panel hidden" id="panel-telemetry">
-          <div class="control-group">
+          <!-- Standard / Extra Atlas Mouth Controls (Miyu) -->
+          <div class="control-group" id="grp-atlas-controls">
             <div class="control-header">
               <span class="control-label">MOUTH EXPRESSION</span>
               <span class="control-value" id="val-mouth-shape">#00 SMILE</span>
@@ -187,6 +188,39 @@ export function getHUDHTMLTemplate() {
               <button class="bento-tab-btn" data-mouth="e50">E#50</button>
               <button class="bento-tab-btn" data-mouth="e80">E#80</button>
               <button class="bento-tab-btn" data-mouth="e110">E#110</button>
+            </div>
+          </div>
+
+          <!-- VRM Expressions & Mouth Controls (Arona) -->
+          <div class="control-group" id="grp-vrm-controls" style="display: none;">
+            <div class="control-header">
+              <span class="control-label">VRM EXPRESSION</span>
+              <span class="control-value" id="val-vrm-expression">NEUTRAL</span>
+            </div>
+            <div class="quick-vrm-expressions" id="presets-vrm-exp" style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+              <button class="bento-tab-btn active" data-vrm-exp="Neutral">NEUTRAL</button>
+              <button class="bento-tab-btn" data-vrm-exp="Joy">JOY</button>
+              <button class="bento-tab-btn" data-vrm-exp="Angry">ANGRY</button>
+              <button class="bento-tab-btn" data-vrm-exp="Sorrow">SORROW</button>
+              <button class="bento-tab-btn" data-vrm-exp="Fun">FUN</button>
+              <button class="bento-tab-btn" data-vrm-exp="Smug">SMUG</button>
+              <button class="bento-tab-btn" data-vrm-exp="Love">LOVE</button>
+              <button class="bento-tab-btn" data-vrm-exp="Afraid">AFRAID</button>
+              <button class="bento-tab-btn" data-vrm-exp="Blink">BLINK</button>
+            </div>
+
+            <div class="control-header" style="margin-top: 8px;">
+              <span class="control-label">VRM MOUTH (VOWELS)</span>
+              <span class="control-value" id="val-vrm-vowel">DEFAULT</span>
+            </div>
+            <div class="quick-vrm-vowels" id="presets-vrm-vowels" style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button class="bento-tab-btn active" data-vrm-vowel="">REST</button>
+              <button class="bento-tab-btn" data-vrm-vowel="A">A</button>
+              <button class="bento-tab-btn" data-vrm-vowel="I">I</button>
+              <button class="bento-tab-btn" data-vrm-vowel="U">U</button>
+              <button class="bento-tab-btn" data-vrm-vowel="E">E</button>
+              <button class="bento-tab-btn" data-vrm-vowel="O">O</button>
+              <button class="bento-tab-btn" id="btn-vrm-lip-sync" style="color: var(--accent-cyan); font-weight: 700;">👄 TALK</button>
             </div>
           </div>
 

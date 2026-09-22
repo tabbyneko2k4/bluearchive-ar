@@ -4,6 +4,7 @@
  * Handles animation playback, pickup transitions, and 61-shape HD mouth expressions.
  */
 import { getTHREE } from '../utils/three-helpers';
+import { VRMExpressionController } from '../utils/vrm-expression-controller';
 
 // Presets for the 61 mouth shapes from Character_Mouth_High-BgFqI_9W.png
 export const MOUTH_PRESETS = {
@@ -64,6 +65,10 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       mouthTimelines: {
         type: 'string',
         default: ''
+      },
+      isVRM: {
+        type: 'boolean',
+        default: false
       }
     },
 
@@ -83,6 +88,27 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       this.mouthCtx = null;
       this.mouthTexture = null;
       this.activeMouthIndex = this.data.currentMouthIndex || this.data.idleMouthIndex;
+
+      // VRM Expression Controller reference
+      this.isVRM = !!this.data.isVRM;
+      this.vrmController = null;
+
+      this.onVRMExpression = (evt) => {
+        const { expression, weight } = evt.detail || {};
+        if (this.vrmController && expression) {
+          this.vrmController.setExpression(expression, weight !== undefined ? weight : 1.0);
+        }
+      };
+
+      this.onVRMVowel = (evt) => {
+        const { vowel, weight } = evt.detail || {};
+        if (this.vrmController) {
+          this.vrmController.setMouthVowel(vowel, weight !== undefined ? weight : 1.0);
+        }
+      };
+
+      this.el.addEventListener('set-vrm-expression', this.onVRMExpression);
+      this.el.addEventListener('set-vrm-vowel', this.onVRMVowel);
 
       // Animation mouth timeline mappings (passed dynamically from model config)
       this.animationMouthTimelines = {};
@@ -235,7 +261,22 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       if (!model || !THREE) return;
       this.modelLoaded = true;
 
-      // 1. Initialize Animation Mixer and catalog clips
+      // Check if this model is a VRM
+      const hasVRM = this.data.isVRM ||
+        (e?.detail?.parser?.json?.extensions?.VRM) ||
+        (e?.detail?.userData?.gltfExtensions?.VRM) ||
+        (model && (model.getObjectByName('body.baked') || model.getObjectByName('eyeballs.baked')));
+
+      if (hasVRM) {
+        this.isVRM = true;
+        this.vrmController = new VRMExpressionController(e?.detail || { scene: model });
+        this.el.vrmController = this.vrmController;
+        this.vrmController.startAutoBlink();
+        console.log(`[model-animator] Initialized VRMExpressionController for ${this.el.id}`);
+        return;
+      }
+
+      // 1. Initialize Animation Mixer and catalog clips for non-VRM (Miyu)
       const animations = model.animations || (e?.detail?.model && e.detail.model.animations) || [];
       if (animations.length > 0) {
         this.mixer = new THREE.AnimationMixer(model);
@@ -403,6 +444,14 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
 
     onDragStart: function () {
       this.isDragging = true;
+
+      // VRM model reaction
+      if (this.isVRM && this.vrmController) {
+        this.vrmController.setExpression('Afraid', 1.0);
+        this.vrmController.setMouthVowel('O', 0.9);
+        return;
+      }
+
       const pickup = this.data.pickupClip;
       if (pickup && this.clips[pickup]) {
         this.playClip(pickup, true);
@@ -419,6 +468,18 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
 
     onDragEnd: function () {
       this.isDragging = false;
+
+      // VRM model reaction
+      if (this.isVRM && this.vrmController) {
+        this.vrmController.setExpression('Joy', 1.0);
+        this.vrmController.setMouthVowel(null);
+        setTimeout(() => {
+          if (this.vrmController && !this.isDragging) {
+            this.vrmController.setExpression('Neutral', 1.0);
+          }
+        }, 2800);
+        return;
+      }
 
       // Randomize to a new idle animation after each pickup/drop
       this.currentIdleName = this.pickRandomIdle(true);
@@ -467,6 +528,12 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       this.el.removeEventListener('model-loaded', this.onModelLoaded);
       this.el.removeEventListener('dragstart', this.onDragStart);
       this.el.removeEventListener('dragend', this.onDragEnd);
+      this.el.removeEventListener('set-vrm-expression', this.onVRMExpression);
+      this.el.removeEventListener('set-vrm-vowel', this.onVRMVowel);
+      if (this.vrmController) {
+        this.vrmController.dispose();
+        this.vrmController = null;
+      }
       if (this.mixer) {
         this.mixer.stopAllAction();
         this.mixer = null;

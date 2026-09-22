@@ -378,6 +378,38 @@ export class PixelHUDManager {
       });
     });
 
+    // VRM Expressions listeners
+    document.querySelectorAll('#presets-vrm-exp button').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const exp = e.currentTarget.getAttribute('data-vrm-exp');
+        document.querySelectorAll('#presets-vrm-exp button').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const lbl = document.getElementById('val-vrm-expression');
+        if (lbl) lbl.textContent = exp.toUpperCase();
+        this.setVRMExpression(exp);
+      });
+    });
+
+    // VRM Mouth Vowels listeners
+    document.querySelectorAll('#presets-vrm-vowels button[data-vrm-vowel]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const vowel = e.currentTarget.getAttribute('data-vrm-vowel') || null;
+        document.querySelectorAll('#presets-vrm-vowels button[data-vrm-vowel]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const lbl = document.getElementById('val-vrm-vowel');
+        if (lbl) lbl.textContent = vowel ? vowel.toUpperCase() : 'REST';
+        this.setVRMVowel(vowel);
+      });
+    });
+
+    // VRM Talk / Lip-sync toggle
+    const btnVrmTalk = document.getElementById('btn-vrm-lip-sync');
+    if (btnVrmTalk) {
+      btnVrmTalk.addEventListener('click', () => {
+        this.toggleVRMLipSync();
+      });
+    }
+
     document.getElementById('btn-toggle-lights').addEventListener('click', () => {
       this.toggleLights();
     });
@@ -492,6 +524,10 @@ export class PixelHUDManager {
         panel.classList.add('hidden');
       }
     });
+
+    if (tabName === 'telemetry') {
+      this.updateControlsPanelForActiveModel();
+    }
   }
 
   toggleDrawer(forceState) {
@@ -501,6 +537,7 @@ export class PixelHUDManager {
 
     if (this.drawerOpen) {
       drawer.classList.remove('closed');
+      this.updateControlsPanelForActiveModel();
       controlsBtn.classList.add('active');
     } else {
       drawer.classList.add('closed');
@@ -629,7 +666,8 @@ export class PixelHUDManager {
         pickupMouthIndex: mouthCfg.pickupMouthIndex ?? 33,
         mouthStyle: mouthCfg.mouthStyle || 'dynamic',
         currentMouthIndex: mouthCfg.currentMouthIndex ?? 0,
-        mouthTimelines: JSON.stringify(timelines)
+        mouthTimelines: JSON.stringify(timelines),
+        isVRM: !!model.isVRM
       });
     }
 
@@ -637,6 +675,7 @@ export class PixelHUDManager {
       if (this.flatShader && entity.object3D) {
         applyFlatShaderToMesh(entity.object3D, true);
       }
+      this.updateControlsPanelForActiveModel();
     });
 
     // Character voice lines event hooks
@@ -789,6 +828,60 @@ export class PixelHUDManager {
       if (animator) {
         animator.data.mouthStyle = 'fixed';
         animator.setMouthShapeIndex(val);
+      }
+    }
+  }
+
+  updateControlsPanelForActiveModel() {
+    const activeModel = this.models.find(m => m.id === this.activeModelId) || this.models.find(m => m.placed);
+    const grpAtlas = document.getElementById('grp-atlas-controls');
+    const grpVrm = document.getElementById('grp-vrm-controls');
+    if (activeModel && activeModel.isVRM) {
+      if (grpAtlas) grpAtlas.style.display = 'none';
+      if (grpVrm) grpVrm.style.display = 'block';
+    } else {
+      if (grpAtlas) grpAtlas.style.display = 'block';
+      if (grpVrm) grpVrm.style.display = 'none';
+    }
+  }
+
+  setVRMExpression(expressionName, weight = 1.0) {
+    const activeModel = this.models.find(m => m.id === this.activeModelId && m.placed) || this.models.find(m => m.placed && m.isVRM);
+    if (activeModel && activeModel.entityEl) {
+      activeModel.entityEl.dispatchEvent(new CustomEvent('set-vrm-expression', {
+        detail: { expression: expressionName, weight }
+      }));
+      this.showToast(`EXPRESSION: ${expressionName.toUpperCase()}`, 'blue');
+    }
+  }
+
+  setVRMVowel(vowel, weight = 1.0) {
+    const activeModel = this.models.find(m => m.id === this.activeModelId && m.placed) || this.models.find(m => m.placed && m.isVRM);
+    if (activeModel && activeModel.entityEl) {
+      activeModel.entityEl.dispatchEvent(new CustomEvent('set-vrm-vowel', {
+        detail: { vowel, weight }
+      }));
+      this.showToast(`MOUTH: ${vowel ? vowel.toUpperCase() : 'REST'}`, 'blue');
+    }
+  }
+
+  toggleVRMLipSync() {
+    const activeModel = this.models.find(m => m.id === this.activeModelId && m.placed) || this.models.find(m => m.placed && m.isVRM);
+    if (!activeModel || !activeModel.entityEl) {
+      this.showToast('HÃY ĐẶT NHÂN VẬT VÀO SCENE ĐỂ TEST TALK');
+      return;
+    }
+    const comp = activeModel.entityEl.components && activeModel.entityEl.components['model-animator'];
+    const vrm = comp && comp.vrmController;
+    if (vrm) {
+      if (vrm.lipSyncActive) {
+        vrm.stopLipSyncTest();
+        this.showToast('ĐÃ DỪNG NÓI CHUYỆN');
+        document.getElementById('btn-vrm-lip-sync')?.classList.remove('active');
+      } else {
+        vrm.startLipSyncTest(180);
+        this.showToast('ARONA ĐANG NÓI CHUYỆN (LIP-SYNC)...', 'green');
+        document.getElementById('btn-vrm-lip-sync')?.classList.add('active');
       }
     }
   }
