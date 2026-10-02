@@ -17,6 +17,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="./assets/js/ba-catalog-service.js"></script>
 
   <style>
     :root {
@@ -1005,6 +1006,144 @@
       .anim-tag-pill .remove-btn:hover {
         color: #fff;
       }
+
+      /* Kivotos Roster Modal in Debug Studio */
+      .studio-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .studio-modal-overlay.hidden {
+        display: none !important;
+      }
+      .studio-modal-card {
+        background: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        width: 100%;
+        max-width: 920px;
+        height: 82vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      }
+      .studio-modal-header {
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-color);
+        background: rgba(0, 0, 0, 0.3);
+      }
+      .studio-modal-toolbar {
+        padding: 10px 18px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.15);
+      }
+      .studio-school-chips {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      .studio-school-chips .school-chip {
+        padding: 3px 9px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+      }
+      .studio-school-chips .school-chip.active,
+      .studio-school-chips .school-chip:hover {
+        background: rgba(56, 189, 248, 0.2);
+        color: #38bdf8;
+        border-color: #38bdf8;
+      }
+      .studio-modal-body {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+      .studio-roster-grid {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 10px;
+        border-right: 1px solid var(--border-color);
+      }
+      .studio-student-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .studio-student-card:hover,
+      .studio-student-card.selected {
+        border-color: #38bdf8;
+        background: rgba(56, 189, 248, 0.1);
+      }
+      .studio-student-card.has-glb {
+        border-left: 3px solid #10b981;
+      }
+      .studio-card-avatar {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #000;
+        border: 1px solid var(--border-color);
+      }
+      .studio-student-detail {
+        width: 320px;
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .studio-student-detail.hidden {
+        display: none !important;
+      }
+      .detail-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        border: 2px solid #38bdf8;
+        object-fit: cover;
+      }
+      .detail-bio-box {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        max-height: 240px;
+        overflow-y: auto;
+      }
   </style>
 </head>
 
@@ -1027,6 +1166,10 @@
           <span style="color: var(--accent-cyan); font-weight: 700;">📁 OPEN 3D/VRM</span>
         </button>
         <input type="file" id="file-glb-input" accept=".glb,.gltf,.vrm" style="display: none;">
+
+        <button class="btn" id="btn-open-ba-roster" title="Duyệt và nạp học viên Blue Archive từ GitHub + Wiki" style="border-color: #38bdf8; color: #38bdf8; font-weight: 700;">
+          <span>🌐 KIVOTOS ROSTER</span>
+        </button>
 
         <label style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); margin-left: 4px;">ANIMATION:</label>
         <select id="select-animation" style="width: 210px;"></select>
@@ -1494,6 +1637,64 @@
 
     <!-- Floating Toast -->
     <div id="studio-toast">TOAST MESSAGE</div>
+
+    <!-- Blue Archive Online Character Roster Modal -->
+    <div id="studio-roster-modal" class="studio-modal-overlay hidden">
+      <div class="studio-modal-card">
+        <div class="studio-modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8; font-weight: 700; font-size: 13px;">🌐 KIVOTOS ROSTER // 3D MODEL STREAMER</span>
+            <span id="lbl-studio-roster-count" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #94a3b8;">(Syncing...)</span>
+          </div>
+          <button class="btn" id="btn-close-studio-roster">✕ CLOSE</button>
+        </div>
+        <div class="studio-modal-toolbar">
+          <input type="text" id="studio-roster-search" placeholder="Search student name or school (e.g. Aru, Shiroko, Gehenna, Trinity)..." style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 6px; padding: 0 10px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 11px; outline: none;" />
+          <div class="studio-school-chips" id="studio-school-chips">
+            <button class="school-chip active" data-school="all">ALL</button>
+            <button class="school-chip" data-school="Gehenna">Gehenna</button>
+            <button class="school-chip" data-school="Trinity">Trinity</button>
+            <button class="school-chip" data-school="Millennium">Millennium</button>
+            <button class="school-chip" data-school="Abydos">Abydos</button>
+            <button class="school-chip" data-school="SRT">SRT</button>
+            <button class="school-chip" data-school="Hyakkiyako">Hyakkiyako</button>
+            <button class="school-chip" data-school="RedWinter">Red Winter</button>
+            <button class="school-chip" data-school="Arius">Arius</button>
+            <button class="school-chip" data-school="Shanhaijing">Shanhaijing</button>
+          </div>
+        </div>
+        <div class="studio-modal-body">
+          <div id="studio-roster-grid" class="studio-roster-grid">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; font-family: 'JetBrains Mono', monospace; color: #38bdf8;">
+              ⏳ Đang tải dữ liệu học viên & mô hình 3D từ GitHub / Wiki...
+            </div>
+          </div>
+          <div id="studio-student-detail" class="studio-student-detail hidden">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <img id="studio-detail-avatar" src="" alt="avatar" class="detail-avatar" onerror="this.onerror=null;this.src='./assets/preview.jpg'" />
+              <div style="flex: 1; min-width: 0;">
+                <h2 id="studio-detail-name" style="font-size: 15px; color: #fff; font-weight: 700;">Student</h2>
+                <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                  <span class="role-badge default-idle" id="studio-detail-school">School</span>
+                  <span class="role-badge idle" id="studio-detail-role">Role</span>
+                  <span class="role-badge none" id="studio-detail-armor">Combat</span>
+                </div>
+              </div>
+            </div>
+            <div class="detail-bio-box">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #94a3b8; margin-bottom: 6px;">STUDENT DOSSIER / BIO:</div>
+              <p id="studio-detail-bio" style="font-size: 11px; line-height: 1.5; color: #e2e8f0; white-space: pre-line;"></p>
+            </div>
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-primary" id="btn-studio-download-load" style="width: 100%; padding: 12px; font-weight: 700; background: #38bdf8; color: #080b10; border-color: #38bdf8; cursor: pointer;">
+                📥 TẢI & NẠP VÀO STUDIO
+              </button>
+              <span id="studio-dl-progress" style="text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #38bdf8; display: none;">Tải: 0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -4352,6 +4553,243 @@ export default ${varName};
           updateConfigUI();
         });
       });
+
+      // Kivotos Online Roster Modal Listeners
+      const btnOpenRoster = document.getElementById('btn-open-ba-roster');
+      const btnCloseRoster = document.getElementById('btn-close-studio-roster');
+      const searchRoster = document.getElementById('studio-roster-search');
+      const chipsRoster = document.getElementById('studio-school-chips');
+      const btnStudioDlLoad = document.getElementById('btn-studio-download-load');
+
+      if (btnOpenRoster) {
+        btnOpenRoster.addEventListener('click', () => openStudioRosterModal());
+      }
+      if (btnCloseRoster) {
+        btnCloseRoster.addEventListener('click', () => closeStudioRosterModal());
+      }
+      if (searchRoster) {
+        searchRoster.addEventListener('input', (e) => {
+          studioSearchFilter = (e.target.value || '').trim().toLowerCase();
+          renderStudioRoster();
+        });
+      }
+      if (chipsRoster) {
+        chipsRoster.querySelectorAll('.school-chip').forEach(chip => {
+          chip.addEventListener('click', (e) => {
+            chipsRoster.querySelectorAll('.school-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            studioSchoolFilter = chip.getAttribute('data-school') || 'all';
+            renderStudioRoster();
+          });
+        });
+      }
+      if (btnStudioDlLoad) {
+        btnStudioDlLoad.addEventListener('click', () => {
+          if (studioSelectedStudent) {
+            downloadAndLoadStudentInStudio(studioSelectedStudent);
+          }
+        });
+      }
+    }
+
+    // ==========================================
+    // KIVOTOS ONLINE ROSTER LOGIC FOR STUDIO
+    // ==========================================
+    let studioOnlineCatalog = [];
+    let studioSelectedStudent = null;
+    let studioSchoolFilter = 'all';
+    let studioSearchFilter = '';
+    let isStudioCatalogLoading = false;
+
+    async function openStudioRosterModal() {
+      const modal = document.getElementById('studio-roster-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+
+      if (studioOnlineCatalog.length === 0 && !isStudioCatalogLoading) {
+        isStudioCatalogLoading = true;
+        const grid = document.getElementById('studio-roster-grid');
+        if (grid) {
+          grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; font-family: 'JetBrains Mono', monospace; color: #38bdf8;">
+              ⏳ Đang tải danh sách học viên từ Wiki & model GLB từ GitHub...
+            </div>
+          `;
+        }
+        try {
+          if (window.BACatalogService) {
+            studioOnlineCatalog = await window.BACatalogService.getUnifiedCharacterCatalog();
+          } else {
+            console.error('BACatalogService is not loaded');
+          }
+          isStudioCatalogLoading = false;
+          const countLbl = document.getElementById('lbl-studio-roster-count');
+          if (countLbl) countLbl.textContent = `(${studioOnlineCatalog.length} học viên)`;
+          renderStudioRoster();
+        } catch (err) {
+          isStudioCatalogLoading = false;
+          console.error('[Studio] Catalog fetch error:', err);
+          showToast(`LỖI TẢI DANH SÁCH: ${err.message}`);
+        }
+      } else {
+        renderStudioRoster();
+      }
+    }
+
+    function closeStudioRosterModal() {
+      const modal = document.getElementById('studio-roster-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function renderStudioRoster() {
+      const grid = document.getElementById('studio-roster-grid');
+      if (!grid) return;
+
+      let list = studioOnlineCatalog;
+      if (studioSchoolFilter && studioSchoolFilter !== 'all') {
+        const sch = studioSchoolFilter.toLowerCase();
+        list = list.filter(s => (s.school || '').toLowerCase().includes(sch));
+      }
+      if (studioSearchFilter) {
+        list = list.filter(s =>
+          (s.name || '').toLowerCase().includes(studioSearchFilter) ||
+          (s.school || '').toLowerCase().includes(studioSearchFilter) ||
+          (s.role || '').toLowerCase().includes(studioSearchFilter)
+        );
+      }
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+            Không tìm thấy học viên nào phù hợp với bộ lọc.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map((item) => {
+        const isSelected = studioSelectedStudent && studioSelectedStudent.id === item.id;
+        return `
+          <div class="studio-student-card ${item.hasModel ? 'has-glb' : ''} ${isSelected ? 'selected' : ''}" data-student-id="${item.id}">
+            <img class="studio-card-avatar" src="${item.avatarUrl}" onerror="this.onerror=null;this.src='./assets/preview.jpg'" loading="lazy" alt="${item.name}" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                <strong style="font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</strong>
+                <span class="role-badge ${item.hasModel ? 'default-idle' : 'none'}" style="font-size: 8px;">${item.hasModel ? '3D GLB' : 'NO 3D'}</span>
+              </div>
+              <div style="display: flex; gap: 4px; margin-top: 4px; font-size: 10px; color: var(--text-muted);">
+                <span>${item.school}</span> • <span>${item.role}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.studio-student-card').forEach((card) => {
+        card.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-student-id');
+          const student = studioOnlineCatalog.find(s => String(s.id) === String(id));
+          if (student) selectStudentInStudio(student);
+        });
+      });
+    }
+
+    function selectStudentInStudio(student) {
+      studioSelectedStudent = student;
+      renderStudioRoster();
+
+      const detail = document.getElementById('studio-student-detail');
+      if (!detail) return;
+      detail.classList.remove('hidden');
+
+      const img = document.getElementById('studio-detail-avatar');
+      const name = document.getElementById('studio-detail-name');
+      const school = document.getElementById('studio-detail-school');
+      const role = document.getElementById('studio-detail-role');
+      const armor = document.getElementById('studio-detail-armor');
+      const bio = document.getElementById('studio-detail-bio');
+      const btnLoad = document.getElementById('btn-studio-download-load');
+
+      if (img) {
+        img.src = student.avatarUrl;
+        img.onerror = () => { img.src = './assets/preview.jpg'; };
+      }
+      if (name) name.textContent = student.name;
+      if (school) school.textContent = student.school;
+      if (role) role.textContent = student.role;
+      if (armor) armor.textContent = `${student.bulletType} / ${student.armorType}`;
+      if (bio) bio.textContent = student.profile || 'Không có mô tả.';
+
+      if (btnLoad) {
+        if (student.hasModel) {
+          btnLoad.disabled = false;
+          btnLoad.style.opacity = '1';
+          btnLoad.textContent = '📥 TẢI & NẠP VÀO STUDIO';
+        } else {
+          btnLoad.disabled = true;
+          btnLoad.style.opacity = '0.5';
+          btnLoad.textContent = '⚠️ CHƯA CÓ MODEL 3D';
+        }
+      }
+    }
+
+    async function downloadAndLoadStudentInStudio(student) {
+      if (!student.hasModel || !student.downloadUrl) {
+        showToast(`Học viên ${student.name} chưa có file 3D GLB`);
+        return;
+      }
+
+      const btn = document.getElementById('btn-studio-download-load');
+      const prg = document.getElementById('studio-dl-progress');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ ĐANG TẢI MODEL...';
+      }
+      if (prg) {
+        prg.style.display = 'block';
+        prg.textContent = 'Tải: 0%';
+      }
+
+      showToast(`BẮT ĐẦU TẢI: ${student.name.toUpperCase()} GLB...`);
+
+      try {
+        const blobUrl = await window.BACatalogService.downloadGLBWithProgress(student.downloadUrl, (pct) => {
+          if (btn) btn.textContent = `TẢI: ${pct}%`;
+          if (prg) prg.textContent = `Tiến trình: ${pct}%`;
+        });
+
+        // Add to model selector dropdown
+        const selModelSource = document.getElementById('select-model-source');
+        if (selModelSource) {
+          const opt = document.createElement('option');
+          opt.value = blobUrl;
+          opt.textContent = `🌐 ${student.name} (Online)`;
+          selModelSource.appendChild(opt);
+          selModelSource.value = blobUrl;
+        }
+
+        // Close roster modal
+        closeStudioRosterModal();
+
+        // Load into Three.js
+        loadGLBModel(blobUrl, student.modelFileName || `${student.name}.glb`);
+
+        // Update studio brand metadata
+        characterConfig.name = `${student.name.toUpperCase()} // MODEL`;
+        characterConfig.subtitle = `${student.school} • ${student.role}`;
+        updateConfigUI();
+
+        showToast(`ĐÃ NẠP HỌC VIÊN: ${student.name.toUpperCase()}`);
+      } catch (err) {
+        console.error('[Studio] Download error:', err);
+        showToast(`LỖI TẢI GLB: ${err.message}`);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '📥 TẢI & NẠP VÀO STUDIO';
+        }
+        if (prg) prg.style.display = 'none';
+      }
     }
 
     // 14. Animation Frame Loop

@@ -154,10 +154,50 @@ export function getHUDHTMLTemplate() {
       </div>
 
       <div class="bento-body">
-        <!-- Panel 1: Models -->
+        <!-- Panel 1: Models & Kivotos Roster -->
         <div class="bento-panel" id="panel-models">
-          <div class="models-grid" id="models-list">
-            <!-- Rendered via JS -->
+          <!-- Roster Category Switcher -->
+          <div class="roster-tab-switcher">
+            <button class="roster-tab-btn active" id="tab-roster-builtin" data-roster-tab="builtin">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              BUILT-IN (2)
+            </button>
+            <button class="roster-tab-btn" id="tab-roster-online" data-roster-tab="online">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              ONLINE ROSTER 🌐
+            </button>
+          </div>
+
+          <!-- Built-in Models View -->
+          <div id="view-roster-builtin">
+            <div class="models-grid" id="models-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Online Roster View -->
+          <div id="view-roster-online" class="hidden">
+            <div class="roster-search-container">
+              <input type="text" class="roster-search-input" id="roster-search-input" placeholder="Search student name or school...">
+              <div class="roster-school-filters" id="roster-school-filters">
+                <button class="school-chip active" data-school="all">ALL</button>
+                <button class="school-chip" data-school="Gehenna">Gehenna</button>
+                <button class="school-chip" data-school="Trinity">Trinity</button>
+                <button class="school-chip" data-school="Millennium">Millennium</button>
+                <button class="school-chip" data-school="Abydos">Abydos</button>
+                <button class="school-chip" data-school="SRT">SRT</button>
+                <button class="school-chip" data-school="Hyakkiyako">Hyakkiyako</button>
+                <button class="school-chip" data-school="RedWinter">Red Winter</button>
+                <button class="school-chip" data-school="Arius">Arius</button>
+                <button class="school-chip" data-school="Shanhaijing">Shanhaijing</button>
+              </div>
+            </div>
+
+            <div class="online-roster-grid" id="online-roster-list">
+              <div style="text-align: center; padding: 20px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+                Click to load Blue Archive character database...
+              </div>
+            </div>
           </div>
         </div>
 
@@ -326,6 +366,41 @@ export function getHUDHTMLTemplate() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
         CONTROLS
       </button>
+    </div>
+
+    <!-- Student Bio / Wiki Information Modal -->
+    <div class="student-bio-modal-overlay hidden" id="student-bio-modal">
+      <div class="student-bio-card">
+        <div class="student-bio-header">
+          <div class="student-bio-title-group">
+            <img class="student-bio-avatar" id="bio-avatar" src="" alt="Student Avatar" />
+            <div>
+              <h3 class="student-name-text" id="bio-name" style="font-size: 14px;">Student Name</h3>
+              <div class="student-tags-row" style="margin-top: 4px;">
+                <span class="tag-badge tag-school" id="bio-school">School</span>
+                <span class="tag-badge tag-role" id="bio-role">Role</span>
+                <span class="tag-badge" id="bio-armor" style="background: rgba(234, 179, 8, 0.2); color: #FACC15;">Armor</span>
+              </div>
+            </div>
+          </div>
+          <button class="bento-close-btn" id="btn-close-bio-modal">✕</button>
+        </div>
+        <div class="student-bio-body">
+          <div class="control-header">
+            <span class="control-label">STUDENT DOSSIER / BIO</span>
+            <span class="control-value" id="bio-id">ID: 10000</span>
+          </div>
+          <div class="student-bio-desc" id="bio-desc">
+            Profile text...
+          </div>
+        </div>
+        <div class="student-bio-footer">
+          <button class="bento-tab-btn" id="btn-bio-dismiss" style="padding: 8px 14px;">CLOSE</button>
+          <button class="btn-online-spawn" id="btn-bio-spawn-action" style="padding: 8px 16px;">
+            <span>SPAWN 3D IN AR</span>
+          </button>
+        </div>
+      </div>
     </div>
   `;
 }

@@ -13,6 +13,11 @@ import {
 import { ConsoleManager } from './console-manager';
 import { getHUDHTMLTemplate } from './hud-ui';
 import { CharacterAudioManager } from '../audio/character-audio-manager';
+import {
+  getUnifiedCharacterCatalog,
+  downloadGLBWithProgress,
+  autoDetectBAAnimations
+} from '../utils/ba-catalog-service';
 
 // Ensure custom A-Frame components are registered
 import '../components/three-ar-drag';
@@ -20,7 +25,7 @@ import '../components/model-animator';
 
 export class PixelHUDManager {
   constructor() {
-    this.models = MODEL_CONFIGS;
+    this.models = [...MODEL_CONFIGS];
     this.activeModelId = (this.models && this.models.length > 0) ? this.models[0].id : null;
     this.audioManager = new CharacterAudioManager({
       onToast: (msg, type) => this.showToast(msg, type)
@@ -31,6 +36,14 @@ export class PixelHUDManager {
     this.autoHideEnabled = true;
     this.autoHideTimer = null;
     this.toastTimer = null;
+
+    // Online Kivotos Roster State
+    this.rosterTab = 'builtin'; // 'builtin' | 'online'
+    this.onlineCatalog = [];
+    this.selectedSchool = 'all';
+    this.searchQuery = '';
+    this.activeBioStudent = null;
+    this.isCatalogLoading = false;
 
     // Lighting, Shader & Debug States
     this.lightsEnabled = true;
@@ -493,6 +506,324 @@ export class PixelHUDManager {
 
     const btnFloatingClose = document.getElementById('btn-floating-close');
     if (btnFloatingClose) btnFloatingClose.addEventListener('click', () => this.consoleManager.toggleRemoteConsole(false));
+
+    // Online Kivotos Roster Subtab Switching
+    const tabBuiltin = document.getElementById('tab-roster-builtin');
+    const tabOnline = document.getElementById('tab-roster-online');
+    if (tabBuiltin && tabOnline) {
+      tabBuiltin.addEventListener('click', () => this.switchRosterTab('builtin'));
+      tabOnline.addEventListener('click', () => this.switchRosterTab('online'));
+    }
+
+    // Search and Filter Events for Online Roster
+    const searchInput = document.getElementById('roster-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.searchQuery = (e.target.value || '').trim().toLowerCase();
+        this.renderOnlineRoster();
+      });
+    }
+
+    const schoolFilters = document.getElementById('roster-school-filters');
+    if (schoolFilters) {
+      schoolFilters.querySelectorAll('.school-chip').forEach((chip) => {
+        chip.addEventListener('click', (e) => {
+          schoolFilters.querySelectorAll('.school-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          this.selectedSchool = chip.getAttribute('data-school') || 'all';
+          this.renderOnlineRoster();
+        });
+      });
+    }
+
+    // Student Bio Modal Events
+    const btnCloseBio = document.getElementById('btn-close-bio-modal');
+    const btnDismissBio = document.getElementById('btn-bio-dismiss');
+    if (btnCloseBio) btnCloseBio.addEventListener('click', () => this.closeStudentBioModal());
+    if (btnDismissBio) btnDismissBio.addEventListener('click', () => this.closeStudentBioModal());
+
+    const btnBioSpawn = document.getElementById('btn-bio-spawn-action');
+    if (btnBioSpawn) {
+      btnBioSpawn.addEventListener('click', () => {
+        if (this.activeBioStudent) {
+          this.spawnOnlineStudent(this.activeBioStudent);
+        }
+      });
+    }
+  }
+
+  switchRosterTab(tab) {
+    this.rosterTab = tab;
+    const tabBuiltin = document.getElementById('tab-roster-builtin');
+    const tabOnline = document.getElementById('tab-roster-online');
+    const viewBuiltin = document.getElementById('view-roster-builtin');
+    const viewOnline = document.getElementById('view-roster-online');
+
+    if (tab === 'online') {
+      if (tabOnline) tabOnline.classList.add('active');
+      if (tabBuiltin) tabBuiltin.classList.remove('active');
+      if (viewOnline) viewOnline.classList.remove('hidden');
+      if (viewBuiltin) viewBuiltin.classList.add('hidden');
+
+      if (this.onlineCatalog.length === 0 && !this.isCatalogLoading) {
+        this.loadOnlineCatalog();
+      }
+    } else {
+      if (tabBuiltin) tabBuiltin.classList.add('active');
+      if (tabOnline) tabOnline.classList.remove('active');
+      if (viewBuiltin) viewBuiltin.classList.remove('hidden');
+      if (viewOnline) viewOnline.classList.add('hidden');
+    }
+  }
+
+  async loadOnlineCatalog() {
+    this.isCatalogLoading = true;
+    const container = document.getElementById('online-roster-list');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 24px; font-family: var(--font-mono); font-size: 11px; color: #60A5FA;">
+          <div style="margin-bottom: 8px;">⏳ FETCHING KIVOTOS STUDENTS & 3D MODELS...</div>
+          <span style="font-size: 9px; color: var(--text-muted);">Syncing from GitHub BlueArchiveModels & Wiki API</span>
+        </div>
+      `;
+    }
+
+    try {
+      this.onlineCatalog = await getUnifiedCharacterCatalog();
+      this.isCatalogLoading = false;
+      this.showToast(`LOADED ${this.onlineCatalog.length} STUDENTS`, 'blue');
+      this.renderOnlineRoster();
+    } catch (err) {
+      this.isCatalogLoading = false;
+      console.error('[HUD] Error loading online catalog:', err);
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 20px; font-family: var(--font-mono); font-size: 11px; color: #f87171;">
+            Failed to load online catalog. Please check connection.
+          </div>
+        `;
+      }
+    }
+  }
+
+  renderOnlineRoster() {
+    const container = document.getElementById('online-roster-list');
+    if (!container) return;
+
+    if (this.onlineCatalog.length === 0) {
+      if (!this.isCatalogLoading) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 20px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+            No students found.
+          </div>
+        `;
+      }
+      return;
+    }
+
+    let filtered = this.onlineCatalog;
+
+    // School filter
+    if (this.selectedSchool && this.selectedSchool !== 'all') {
+      const sch = this.selectedSchool.toLowerCase();
+      filtered = filtered.filter(s => (s.school || '').toLowerCase().includes(sch));
+    }
+
+    // Search query filter
+    if (this.searchQuery) {
+      filtered = filtered.filter(s =>
+        (s.name || '').toLowerCase().includes(this.searchQuery) ||
+        (s.school || '').toLowerCase().includes(this.searchQuery) ||
+        (s.role || '').toLowerCase().includes(this.searchQuery)
+      );
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 24px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+          No student matching "${this.searchQuery || this.selectedSchool}".
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map((item) => {
+      const isPlaced = this.models.some(m => m.id === `online_${item.id}` && m.placed);
+      return `
+        <div class="online-student-card ${item.hasModel ? 'has-glb' : ''}">
+          <div class="student-meta-left" data-student-id="${item.id}">
+            <div class="student-avatar-wrap">
+              <img class="student-avatar-img" src="${item.avatarUrl}" onerror="this.onerror=null;this.src='./assets/preview.jpg'" loading="lazy" alt="${item.name}" />
+            </div>
+            <div class="student-info-col">
+              <div class="student-name-row">
+                <span class="student-name-text">${item.name}</span>
+                <span class="tag-badge ${item.hasModel ? 'tag-3d-ready' : 'tag-3d-none'}">${item.hasModel ? '3D GLB' : 'NO 3D'}</span>
+              </div>
+              <div class="student-tags-row">
+                <span class="tag-badge tag-school">${item.school}</span>
+                <span class="tag-badge tag-role">${item.role}</span>
+              </div>
+            </div>
+          </div>
+          <div class="student-actions-right">
+            <button class="btn-student-info" data-action="info" data-student-id="${item.id}" title="Student Dossier / Bio">ℹ</button>
+            ${
+              item.hasModel
+                ? `
+                <button class="btn-online-spawn" data-action="spawn" data-student-id="${item.id}" id="spawn-btn-${item.id}">
+                  ${isPlaced ? 'DESPAWN' : 'SPAWN'}
+                </button>
+              `
+                : ''
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach click for opening bio info
+    container.querySelectorAll('.student-meta-left, [data-action="info"]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        const studentId = e.currentTarget.getAttribute('data-student-id');
+        const student = this.onlineCatalog.find(s => String(s.id) === String(studentId));
+        if (student) this.openStudentBioModal(student);
+      });
+    });
+
+    // Attach click for online spawning
+    container.querySelectorAll('[data-action="spawn"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const studentId = e.currentTarget.getAttribute('data-student-id');
+        const student = this.onlineCatalog.find(s => String(s.id) === String(studentId));
+        if (student) this.spawnOnlineStudent(student);
+      });
+    });
+  }
+
+  openStudentBioModal(student) {
+    this.activeBioStudent = student;
+    const modal = document.getElementById('student-bio-modal');
+    if (!modal) return;
+
+    const imgAvatar = document.getElementById('bio-avatar');
+    const txtName = document.getElementById('bio-name');
+    const txtSchool = document.getElementById('bio-school');
+    const txtRole = document.getElementById('bio-role');
+    const txtArmor = document.getElementById('bio-armor');
+    const txtId = document.getElementById('bio-id');
+    const txtDesc = document.getElementById('bio-desc');
+    const btnSpawn = document.getElementById('btn-bio-spawn-action');
+
+    if (imgAvatar) {
+      imgAvatar.src = student.avatarUrl;
+      imgAvatar.onerror = () => { imgAvatar.src = './assets/preview.jpg'; };
+    }
+    if (txtName) txtName.textContent = student.name;
+    if (txtSchool) txtSchool.textContent = student.school;
+    if (txtRole) txtRole.textContent = student.role;
+    if (txtArmor) txtArmor.textContent = `${student.bulletType} / ${student.armorType}`;
+    if (txtId) txtId.textContent = `ID: ${student.id}`;
+    if (txtDesc) txtDesc.textContent = student.profile || 'No biography dossier recorded in Kivotos database.';
+
+    if (btnSpawn) {
+      if (student.hasModel) {
+        btnSpawn.classList.remove('hidden');
+        const isPlaced = this.models.some(m => m.id === `online_${student.id}` && m.placed);
+        btnSpawn.textContent = isPlaced ? 'DESPAWN FROM AR' : 'SPAWN 3D IN AR';
+      } else {
+        btnSpawn.classList.add('hidden');
+      }
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  closeStudentBioModal() {
+    const modal = document.getElementById('student-bio-modal');
+    if (modal) modal.classList.add('hidden');
+    this.activeBioStudent = null;
+  }
+
+  async spawnOnlineStudent(student) {
+    if (!student.hasModel || !student.downloadUrl) {
+      this.showToast(`NO 3D GLB FOUND FOR ${student.name}`, 'yellow');
+      return;
+    }
+
+    const modelId = `online_${student.id}`;
+    const currentlyPlaced = this.models.find(m => m.id === modelId && m.placed);
+    if (currentlyPlaced) {
+      this.removeModelById(modelId);
+      this.renderOnlineRoster();
+      this.closeStudentBioModal();
+      return;
+    }
+
+    const btn = document.getElementById(`spawn-btn-${student.id}`);
+    const bioBtn = document.getElementById('btn-bio-spawn-action');
+    if (btn) {
+      btn.classList.add('downloading');
+      btn.textContent = 'DL 0%';
+    }
+    if (bioBtn) {
+      bioBtn.classList.add('downloading');
+      bioBtn.textContent = 'DOWNLOADING...';
+    }
+
+    this.showToast(`DOWNLOADING ${student.name.toUpperCase()} GLB...`, 'blue');
+
+    try {
+      const blobUrl = await downloadGLBWithProgress(student.downloadUrl, (pct) => {
+        if (btn) btn.textContent = `DL ${pct}%`;
+        if (bioBtn) bioBtn.textContent = `DL ${pct}%`;
+      });
+
+      let existingModel = this.models.find(m => m.id === modelId);
+      if (!existingModel) {
+        existingModel = {
+          id: modelId,
+          name: `${student.name.toUpperCase()}`,
+          subtitle: `${student.school} • ${student.role}`,
+          src: blobUrl,
+          scale: { x: 100, y: 100, z: 100 },
+          iconSvg: `<img src="${student.avatarUrl}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;" onerror="this.onerror=null;this.src='./assets/preview.jpg'"/>`,
+          animations: null, // Auto-detected when loaded into scene!
+          mouthConfig: {
+            atlasSrc: './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
+            atlasExtraSrc: './assets/common/mouths/All_Mouths_Transparent.png',
+            mouthStyle: 'dynamic',
+            idleMouthIndex: 0,
+            pickupMouthIndex: 33
+          },
+          isOnline: true,
+          studentData: student,
+          placed: false,
+          entityEl: null
+        };
+        this.models.push(existingModel);
+      } else {
+        existingModel.src = blobUrl;
+      }
+
+      this.closeStudentBioModal();
+      this.spawnModelById(modelId);
+      this.renderOnlineRoster();
+      this.showToast(`SPAWNED ONLINE: ${student.name}`, 'green');
+    } catch (err) {
+      console.error('[HUD] Error downloading/spawning online model:', err);
+      this.showToast(`DOWNLOAD FAILED: ${err.message}`, 'yellow');
+    } finally {
+      if (btn) {
+        btn.classList.remove('downloading');
+        btn.textContent = 'SPAWN';
+      }
+      if (bioBtn) {
+        bioBtn.classList.remove('downloading');
+        bioBtn.textContent = 'SPAWN 3D IN AR';
+      }
+    }
   }
 
   toggleInstructions(forceState) {
@@ -672,6 +1003,41 @@ export class PixelHUDManager {
     }
 
     entity.addEventListener('model-loaded', () => {
+      const mesh = entity.getObject3D('mesh');
+      if (mesh) {
+        // Auto scale detection for Blue Archive models (raw bounds in cm vs m)
+        const THREE = window.THREE;
+        if (THREE) {
+          const bbox = new THREE.Box3().setFromObject(mesh);
+          const size = bbox.getSize(new THREE.Vector3());
+          if (size.y < 0.1 && (!model.scale || model.scale.y <= 1)) {
+            model.scale = { x: 100, y: 100, z: 100 };
+            const s = 100 * this.transformState.scale;
+            entity.setAttribute('scale', `${s} ${s} ${s}`);
+          }
+        }
+
+        // Auto animation detection if not pre-configured (Online Models)
+        if (!model.animations && mesh.animations && mesh.animations.length > 0) {
+          const detected = autoDetectBAAnimations(mesh.animations, model.id, model.name);
+          model.animations = detected.animations;
+          model.mouthConfig = detected.mouthConfig;
+
+          entity.setAttribute('model-animator', {
+            idleList: model.animations.idleList,
+            defaultIdle: model.animations.defaultIdle,
+            pickupClip: model.animations.pickup,
+            atlasSrc: model.mouthConfig.atlasSrc,
+            atlasExtraSrc: model.mouthConfig.atlasExtraSrc,
+            idleMouthIndex: model.mouthConfig.idleMouthIndex,
+            pickupMouthIndex: model.mouthConfig.pickupMouthIndex,
+            mouthStyle: model.mouthConfig.mouthStyle,
+            currentMouthIndex: 0
+          });
+          console.log(`[HUD] Auto-detected ${mesh.animations.length} clips for ${model.name}. Default idle: ${model.animations.defaultIdle}`);
+        }
+      }
+
       if (this.flatShader && entity.object3D) {
         applyFlatShaderToMesh(entity.object3D, true);
       }
