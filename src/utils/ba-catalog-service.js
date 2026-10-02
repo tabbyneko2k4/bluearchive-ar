@@ -2,19 +2,24 @@
  * Blue Archive Online Catalog & Asset Streamer Service
  * Integrates:
  * 1. GitHub Models Repository: https://github.com/lihaohong6/BlueArchiveModels
- * 2. Wiki API: https://api.ennead.cc/buruaka/character (from torikushiii/BlueArchiveAPI)
- * 3. SchaleDB Avatar CDN: https://schaledb.com/images/student/icon/{id}.webp
- * 4. Automatic Blue Archive Animation Classifier & Mouth Configurator
+ * 2. Official Community Wiki API: https://bluearchive.wiki/w/api.php
+ * 3. Secondary Wiki API: https://api.ennead.cc/buruaka/character (from torikushiii/BlueArchiveAPI)
+ * 4. Automatic Blue Archive Animation Classifier (Preserves native model mouth animations)
  */
 
 const GITHUB_TREES_API = 'https://api.github.com/repos/lihaohong6/BlueArchiveModels/git/trees/main';
+const BLUE_ARCHIVE_WIKI_API = 'https://bluearchive.wiki/w/api.php';
 const WIKI_API = 'https://api.ennead.cc/buruaka/character';
 const SCHALE_ICON_BASE = 'https://schaledb.com/images/student/icon';
+const SCHALE_PORTRAIT_BASE = 'https://schaledb.com/images/student/portrait';
+
+// Clean SVG Fallback Avatar (eliminates 404 image errors)
+export const FALLBACK_AVATAR = "data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3crect width='100%25' height='100%25' fill='%231e293b'/%3e%3ccircle cx='50' cy='38' r='18' fill='%2338bdf8'/%3e%3cpath d='M25 82c0-14 11-24 25-24s25 10 25 24' fill='%2338bdf8'/%3e%3c/svg%3e";
 
 const CACHE_KEYS = {
-  MODELS: 'ba_models_tree_cache_v1',
-  WIKI: 'ba_wiki_cache_v1',
-  TIMESTAMP: 'ba_catalog_timestamp_v1'
+  MODELS: 'ba_models_tree_cache_v4',
+  WIKI: 'ba_wiki_cache_v4',
+  TIMESTAMP: 'ba_catalog_timestamp_v4'
 };
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -23,12 +28,38 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const downloadedBlobCache = new Map();
 
 /**
- * Normalizes student / model names for flexible matching
- * e.g. "Aru (New Year)" -> "arunewyear"
+ * Smart normalizer for student and model names:
+ * Bridges aliases (Bunny Girl -> Bunny, Riding -> Cycling, Camping -> Camp, Cheerleader -> Cheer Squad,
+ * Kid -> Small, Pajama -> Pajamas, Pop Idol -> Idol, fullwidth asterisks, scenario/carrier props)
  */
+export function cleanStudentName(s) {
+  if (!s) return '';
+  return s.toLowerCase()
+    .replace(/bunny girl/g, 'bunny')
+    .replace(/arisu/g, 'aris')
+    .replace(/riding/g, 'cycling')
+    .replace(/camping/g, 'camp')
+    .replace(/cheerleader/g, 'cheersquad')
+    .replace(/kid/g, 'small')
+    .replace(/sportswear|tracksuit|gym/g, 'track')
+    .replace(/armed/g, 'battle')
+    .replace(/pajamas?/g, 'pajamas')
+    .replace(/pop\s*idol/g, 'idol')
+    .replace(/\s*\(carrier.*?\)/g, '')
+    .replace(/\s*\(scenario.*?\)/g, '')
+    .replace(/\s*\(weapon.*?\)/g, '')
+    .replace(/\s*\(no weapon.*?\)/g, '')
+    .replace(/\s*\(cafe.*?\)/g, '')
+    .replace(/\s*\(cut-in.*?\)/g, '')
+    .replace(/\s*\(normal.*?\)/g, '')
+    .replace(/\s*\(school uniform.*?\)/g, '')
+    .replace(/\s*\(\d+\)/g, '')
+    .replace(/＊/g, '*')
+    .replace(/[\s\-_()[\]{}'"]/g, '');
+}
+
 export function normalizeName(str) {
-  if (!str) return '';
-  return str.toLowerCase().replace(/[\s\-_()[\]{}'".]/g, '');
+  return cleanStudentName(str);
 }
 
 /**
@@ -36,25 +67,24 @@ export function normalizeName(str) {
  */
 export async function fetchGitHubModelsList() {
   try {
-    // Check localStorage cache first
-    const cached = localStorage.getItem(CACHE_KEYS.MODELS);
-    const cachedTime = localStorage.getItem(CACHE_KEYS.TIMESTAMP);
-    if (cached && cachedTime && (Date.now() - parseInt(cachedTime, 10) < CACHE_TTL_MS)) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {
-        console.warn('[BACatalog] Cache parse error:', e);
+    if (typeof localStorage !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEYS.MODELS);
+      const cachedTime = localStorage.getItem(CACHE_KEYS.TIMESTAMP);
+      if (cached && cachedTime && (Date.now() - parseInt(cachedTime, 10) < CACHE_TTL_MS)) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } catch (e) {}
       }
     }
 
     const res = await fetch(GITHUB_TREES_API);
     if (!res.ok) {
-      if (res.status === 403 && cached) {
-        console.warn('[BACatalog] GitHub rate limited, using cached data.');
-        return JSON.parse(cached);
+      if (res.status === 403 && typeof localStorage !== 'undefined') {
+        const cached = localStorage.getItem(CACHE_KEYS.MODELS);
+        if (cached) return JSON.parse(cached);
       }
       throw new Error(`GitHub API error: ${res.status} ${res.statusText}`);
     }
@@ -71,46 +101,97 @@ export async function fetchGitHubModelsList() {
           fileName,
           modelName,
           size: item.size || 0,
-          // Raw GitHub URL & jsDelivr CDN
           downloadUrl: `https://raw.githubusercontent.com/lihaohong6/BlueArchiveModels/main/${encodeURIComponent(fileName)}`,
           cdnUrl: `https://cdn.jsdelivr.net/gh/lihaohong6/BlueArchiveModels@main/${encodeURIComponent(fileName)}`
         };
       });
 
-    // Save to cache
-    localStorage.setItem(CACHE_KEYS.MODELS, JSON.stringify(glbList));
-    localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString());
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(CACHE_KEYS.MODELS, JSON.stringify(glbList));
+      localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString());
+    }
 
     return glbList;
   } catch (err) {
     console.error('[BACatalog] Error fetching GitHub models:', err);
-    // Fallback to cache if available
-    const cached = localStorage.getItem(CACHE_KEYS.MODELS);
-    if (cached) {
-      return JSON.parse(cached);
+    if (typeof localStorage !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEYS.MODELS);
+      if (cached) return JSON.parse(cached);
     }
     return [];
   }
 }
 
 /**
- * Fetches Character Wiki database from api.ennead.cc/buruaka/character
+ * Fetches Character Wiki database from bluearchive.wiki (MediaWiki API)
+ * with automatic fallback to api.ennead.cc/buruaka/character
  */
 export async function fetchCharacterWikiList() {
   try {
-    const cached = localStorage.getItem(CACHE_KEYS.WIKI);
-    const cachedTime = localStorage.getItem(CACHE_KEYS.TIMESTAMP);
-    if (cached && cachedTime && (Date.now() - parseInt(cachedTime, 10) < CACHE_TTL_MS)) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {
-        console.warn('[BACatalog] Wiki cache parse error:', e);
+    if (typeof localStorage !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEYS.WIKI);
+      const cachedTime = localStorage.getItem(CACHE_KEYS.TIMESTAMP);
+      if (cached && cachedTime && (Date.now() - parseInt(cachedTime, 10) < CACHE_TTL_MS)) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
       }
     }
 
+    // 1. Primary Source: official community bluearchive.wiki API
+    try {
+      const wikiUrl = `${BLUE_ARCHIVE_WIKI_API}?action=query&generator=categorymembers&gcmtitle=Category:Characters&gcmlimit=500&prop=pageprops|categories&cllimit=500&format=json&origin=*`;
+      const res = await fetch(wikiUrl);
+      if (res.ok) {
+        const data = await res.json();
+        const pages = Object.values(data.query?.pages || {});
+        if (pages.length > 0) {
+          const wikiList = pages.map(p => {
+            const title = p.title;
+            const props = p.pageprops || {};
+            const cats = (p.categories || []).map(c => c.title.replace(/_/g, ' '));
+
+            const schoolCat = cats.find(c => /Students of /i.test(c));
+            const school = schoolCat ? schoolCat.replace(/.*Students of /i, '').trim() : 'Kivotos';
+
+            const roleCat = cats.find(c => /Characters with role /i.test(c));
+            const role = roleCat ? roleCat.replace(/.*Characters with role /i, '').trim() : 'Striker';
+
+            const rarityCat = cats.find(c => /star rarity/i.test(c));
+            const rarityMatch = rarityCat ? rarityCat.match(/(\d+)\s*star/i) : null;
+            const rarity = rarityMatch ? `${rarityMatch[1]}★` : '3★';
+
+            const safeTitle = encodeURIComponent(title.replace(/ /g, '_'));
+            const avatarUrl = `https://bluearchive.wiki/wiki/Special:FilePath/Portrait_${safeTitle}.png`;
+            const portraitUrl = `https://bluearchive.wiki/wiki/Special:FilePath/${safeTitle}.png`;
+            const wikiUrl = `https://bluearchive.wiki/wiki/${safeTitle}`;
+
+            return {
+              id: cleanStudentName(title),
+              name: title,
+              school,
+              role,
+              rarity,
+              profile: props.description || 'Student of Kivotos Academy.',
+              avatarUrl,
+              portraitUrl,
+              wikiUrl,
+              source: 'bluearchive.wiki'
+            };
+          });
+
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(CACHE_KEYS.WIKI, JSON.stringify(wikiList));
+          }
+          return wikiList;
+        }
+      }
+    } catch (wikiErr) {
+      console.warn('[BACatalog] bluearchive.wiki query failed, trying secondary fallback...', wikiErr);
+    }
+
+    // 2. Secondary fallback: api.ennead.cc/buruaka/character
     const res = await fetch(WIKI_API);
     if (!res.ok) {
       throw new Error(`Wiki API error: ${res.status} ${res.statusText}`);
@@ -118,22 +199,37 @@ export async function fetchCharacterWikiList() {
 
     const data = await res.json();
     if (Array.isArray(data)) {
-      localStorage.setItem(CACHE_KEYS.WIKI, JSON.stringify(data));
-      return data;
+      const fallbackList = data.map(student => ({
+        id: student.id,
+        name: student.name,
+        school: student.school || 'Kivotos',
+        role: student.role || 'Striker',
+        rarity: student.rarity || '3★',
+        profile: student.profile || 'Student of Kivotos Academy.',
+        avatarUrl: `${SCHALE_ICON_BASE}/${student.id}.webp`,
+        portraitUrl: `${SCHALE_PORTRAIT_BASE}/${student.id}.webp`,
+        wikiUrl: `https://bluearchive.wiki/wiki/${encodeURIComponent(student.name.replace(/ /g, '_'))}`,
+        source: 'ennead'
+      }));
+
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(CACHE_KEYS.WIKI, JSON.stringify(fallbackList));
+      }
+      return fallbackList;
     }
     return [];
   } catch (err) {
     console.error('[BACatalog] Error fetching character wiki:', err);
-    const cached = localStorage.getItem(CACHE_KEYS.WIKI);
-    if (cached) {
-      return JSON.parse(cached);
+    if (typeof localStorage !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEYS.WIKI);
+      if (cached) return JSON.parse(cached);
     }
     return [];
   }
 }
 
 /**
- * Builds unified catalog merging Wiki data and GitHub 3D GLB Models
+ * Builds unified catalog by pairing GitHub 3D GLB Models with accurate Wiki dossiers & full image assets
  */
 export async function getUnifiedCharacterCatalog() {
   const [wikiList, glbList] = await Promise.all([
@@ -141,74 +237,70 @@ export async function getUnifiedCharacterCatalog() {
     fetchGitHubModelsList()
   ]);
 
-  // Index GLB models by normalized name
-  const glbMap = new Map();
-  glbList.forEach(item => {
-    glbMap.set(normalizeName(item.modelName), item);
-  });
+  // Matcher function linking GLB model names to Wiki records
+  function findStudentForModel(modelName) {
+    // 1. Direct name match
+    let found = wikiList.find(w => w.name === modelName);
+    if (found) return found;
 
-  const matchedGlbSet = new Set();
-  const catalog = [];
+    // 2. Normalized name match
+    const mClean = cleanStudentName(modelName);
+    found = wikiList.find(w => cleanStudentName(w.name) === mClean);
+    if (found) return found;
 
-  // 1. Process Wiki characters
-  wikiList.forEach(student => {
-    const normName = normalizeName(student.name);
-    let matchedGlb = glbMap.get(normName);
+    // 3. Fallback matching base name before parentheses (e.g. "Saori (Dress) (Cafe)" -> "Saori (Dress)")
+    if (modelName.includes('(')) {
+      const stripped = modelName.replace(/\s*\(carrier.*?\)/i, '')
+        .replace(/\s*\(scenario.*?\)/i, '')
+        .replace(/\s*\(weapon.*?\)/i, '')
+        .replace(/\s*\(no weapon.*?\)/i, '')
+        .replace(/\s*\(cafe.*?\)/i, '')
+        .replace(/\s*\(cut-in.*?\)/i, '')
+        .replace(/\s*\(normal.*?\)/i, '')
+        .trim();
+      found = wikiList.find(w => cleanStudentName(w.name) === cleanStudentName(stripped));
+      if (found) return found;
 
-    // If not direct match, try partial match (e.g. "Shiroko Cycling" vs "Shiroko (Cycling)")
-    if (!matchedGlb) {
-      for (const [key, val] of glbMap.entries()) {
-        if (key.includes(normName) || normName.includes(key)) {
-          matchedGlb = val;
-          break;
-        }
-      }
+      const baseName = modelName.split('(')[0].trim();
+      const bClean = cleanStudentName(baseName);
+      found = wikiList.find(w => cleanStudentName(w.name) === bClean);
     }
+    return found;
+  }
 
-    if (matchedGlb) {
-      matchedGlbSet.add(matchedGlb.fileName);
-    }
+  // Generate catalog from all available 3D models on GitHub
+  const catalog = glbList.map(glb => {
+    const student = findStudentForModel(glb.modelName);
+    const hasWikiMatch = Boolean(student);
+    const studentId = student ? student.id : `glb_${cleanStudentName(glb.modelName)}`;
+    const safeTitle = encodeURIComponent((student ? student.name : glb.modelName).replace(/ /g, '_'));
 
-    catalog.push({
-      id: student.id,
-      name: student.name,
-      school: student.school || 'Unknown',
-      role: student.role || 'Striker',
-      bulletType: student.bulletType || 'Normal',
-      armorType: student.armorType || 'Normal',
-      rarity: student.rarity || 'SSR',
-      profile: student.profile || 'No profile information available.',
-      avatarUrl: `${SCHALE_ICON_BASE}/${student.id}.webp`,
-      hasModel: Boolean(matchedGlb),
-      modelFileName: matchedGlb ? matchedGlb.fileName : null,
-      modelSize: matchedGlb ? matchedGlb.size : 0,
-      downloadUrl: matchedGlb ? matchedGlb.downloadUrl : null,
-      cdnUrl: matchedGlb ? matchedGlb.cdnUrl : null,
-      source: 'wiki'
-    });
-  });
+    const avatarUrl = student && student.avatarUrl
+      ? student.avatarUrl
+      : `https://bluearchive.wiki/wiki/Special:FilePath/Portrait_${safeTitle}.png`;
 
-  // 2. Add remaining GLB models that might not have a Wiki match (NPCs, special variants)
-  glbList.forEach(item => {
-    if (!matchedGlbSet.has(item.fileName)) {
-      catalog.push({
-        id: `glb_${normalizeName(item.modelName)}`,
-        name: item.modelName,
-        school: 'Special / NPC',
-        role: 'Unknown',
-        bulletType: 'Special',
-        armorType: 'Special',
-        rarity: 'SSR',
-        profile: `3D Model from Blue Archive archive (${item.fileName}).`,
-        avatarUrl: './assets/preview.jpg',
-        hasModel: true,
-        modelFileName: item.fileName,
-        modelSize: item.size,
-        downloadUrl: item.downloadUrl,
-        cdnUrl: item.cdnUrl,
-        source: 'github-only'
-      });
-    }
+    const portraitUrl = student && student.portraitUrl
+      ? student.portraitUrl
+      : `https://bluearchive.wiki/wiki/Special:FilePath/${safeTitle}.png`;
+
+    return {
+      id: studentId,
+      name: glb.modelName,
+      wikiName: student ? student.name : glb.modelName,
+      school: student ? (student.school || 'Unknown') : 'Special / NPC',
+      role: student ? (student.role || 'Striker') : 'Special',
+      rarity: student ? (student.rarity || '3★') : '3★',
+      profile: student ? student.profile : `3D Model from Blue Archive archive (${glb.fileName}).`,
+      avatarUrl: avatarUrl,
+      portraitUrl: portraitUrl,
+      wikiUrl: student && student.wikiUrl ? student.wikiUrl : `https://bluearchive.wiki/wiki/${safeTitle}`,
+      hasModel: true,
+      hasWikiMatch: hasWikiMatch,
+      modelFileName: glb.fileName,
+      modelSize: glb.size,
+      downloadUrl: glb.downloadUrl,
+      cdnUrl: glb.cdnUrl
+    };
   });
 
   return catalog;
@@ -264,8 +356,8 @@ export async function downloadGLBWithProgress(url, onProgress = null) {
 }
 
 /**
- * Automatically classifies and configures Blue Archive animations & mouth setup
- * Compatible with A-Frame 'model-animator' component and debug-studio.html
+ * Automatically classifies Blue Archive animations WITHOUT touching mouth animations or textures.
+ * Model's native bone-driven mouth and face animations remain 100% active and untouched.
  */
 export function autoDetectBAAnimations(clips, modelId = 'Character', rawName = 'Character') {
   const names = clips.map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
@@ -295,7 +387,7 @@ export function autoDetectBAAnimations(clips, modelId = 'Character', rawName = '
   return {
     id: modelId,
     name: `${rawName.toUpperCase()} // BA ONLINE`,
-    subtitle: `Online Streamed GLB (${names.length} clips)`,
+    subtitle: `Online Model (${names.length} clips)`,
     scale: { x: 100, y: 100, z: 100 }, // Blue Archive models are exported in cm (x0.01 scale)
     animations: {
       defaultIdle: formationIdle || fallbackIdle,
@@ -306,12 +398,9 @@ export function autoDetectBAAnimations(clips, modelId = 'Character', rawName = '
       victory: victoryList,
       allClips: names
     },
+    // Mouth atlas is DISABLED for online models because they already have native mouth bone animations in the GLB
     mouthConfig: {
-      atlasSrc: './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
-      atlasExtraSrc: './assets/common/mouths/All_Mouths_Transparent.png',
-      mouthStyle: 'dynamic',
-      idleMouthIndex: 0,
-      pickupMouthIndex: 33
+      enableMouthAtlas: false
     },
     placed: false,
     entityEl: null
@@ -326,6 +415,8 @@ if (typeof window !== 'undefined') {
     getUnifiedCharacterCatalog,
     downloadGLBWithProgress,
     autoDetectBAAnimations,
-    normalizeName
+    cleanStudentName,
+    normalizeName,
+    FALLBACK_AVATAR
   };
 }

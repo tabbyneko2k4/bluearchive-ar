@@ -40,6 +40,7 @@ export const MIYU_MODEL_CONFIG = {
     intervalSeconds: 20
   },
   mouthConfig: {
+    enableMouthAtlas: true,
     atlasSrc: './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
     atlasExtraSrc: './assets/common/mouths/All_Mouths_Transparent.png',
     mouthStyle: 'dynamic', // 'dynamic' | 'fixed'

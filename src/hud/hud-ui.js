@@ -396,6 +396,7 @@ export function getHUDHTMLTemplate() {
         </div>
         <div class="student-bio-footer">
           <button class="bento-tab-btn" id="btn-bio-dismiss" style="padding: 8px 14px;">CLOSE</button>
+          <a class="bento-tab-btn" id="btn-bio-wiki-link" href="#" target="_blank" style="padding: 8px 12px; text-decoration: none; color: #38bdf8; display: inline-flex; align-items: center;">WIKI ↗</a>
           <button class="btn-online-spawn" id="btn-bio-spawn-action" style="padding: 8px 16px;">
             <span>SPAWN 3D IN AR</span>
           </button>

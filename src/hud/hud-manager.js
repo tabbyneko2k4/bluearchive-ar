@@ -16,7 +16,8 @@ import { CharacterAudioManager } from '../audio/character-audio-manager';
 import {
   getUnifiedCharacterCatalog,
   downloadGLBWithProgress,
-  autoDetectBAAnimations
+  autoDetectBAAnimations,
+  FALLBACK_AVATAR
 } from '../utils/ba-catalog-service';
 
 // Ensure custom A-Frame components are registered
@@ -653,7 +654,7 @@ export class PixelHUDManager {
         <div class="online-student-card ${item.hasModel ? 'has-glb' : ''}">
           <div class="student-meta-left" data-student-id="${item.id}">
             <div class="student-avatar-wrap">
-              <img class="student-avatar-img" src="${item.avatarUrl}" onerror="this.onerror=null;this.src='./assets/preview.jpg'" loading="lazy" alt="${item.name}" />
+              <img class="student-avatar-img" src="${item.avatarUrl}" onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'" loading="lazy" alt="${item.name}" />
             </div>
             <div class="student-info-col">
               <div class="student-name-row">
@@ -717,15 +718,24 @@ export class PixelHUDManager {
     const btnSpawn = document.getElementById('btn-bio-spawn-action');
 
     if (imgAvatar) {
-      imgAvatar.src = student.avatarUrl;
-      imgAvatar.onerror = () => { imgAvatar.src = './assets/preview.jpg'; };
+      imgAvatar.src = student.portraitUrl || student.avatarUrl || FALLBACK_AVATAR;
+      imgAvatar.onerror = () => {
+        imgAvatar.src = student.avatarUrl || FALLBACK_AVATAR;
+        imgAvatar.onerror = () => { imgAvatar.src = FALLBACK_AVATAR; };
+      };
     }
     if (txtName) txtName.textContent = student.name;
     if (txtSchool) txtSchool.textContent = student.school;
     if (txtRole) txtRole.textContent = student.role;
-    if (txtArmor) txtArmor.textContent = `${student.bulletType} / ${student.armorType}`;
-    if (txtId) txtId.textContent = `ID: ${student.id}`;
+    if (txtArmor) txtArmor.textContent = student.rarity || '3★';
+    if (txtId) txtId.textContent = `${student.school} • ${student.role}`;
     if (txtDesc) txtDesc.textContent = student.profile || 'No biography dossier recorded in Kivotos database.';
+
+    const linkWiki = document.getElementById('btn-bio-wiki-link');
+    if (linkWiki) {
+      const safeTitle = encodeURIComponent((student.wikiName || student.name).replace(/ /g, '_'));
+      linkWiki.href = student.wikiUrl || `https://bluearchive.wiki/wiki/${safeTitle}`;
+    }
 
     if (btnSpawn) {
       if (student.hasModel) {
@@ -788,14 +798,10 @@ export class PixelHUDManager {
           subtitle: `${student.school} • ${student.role}`,
           src: blobUrl,
           scale: { x: 100, y: 100, z: 100 },
-          iconSvg: `<img src="${student.avatarUrl}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;" onerror="this.onerror=null;this.src='./assets/preview.jpg'"/>`,
+          iconSvg: `<img src="${student.avatarUrl}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;" onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'"/>`,
           animations: null, // Auto-detected when loaded into scene!
           mouthConfig: {
-            atlasSrc: './assets/common/mouths/Character_Mouth_High-BgFqI_9W.png',
-            atlasExtraSrc: './assets/common/mouths/All_Mouths_Transparent.png',
-            mouthStyle: 'dynamic',
-            idleMouthIndex: 0,
-            pickupMouthIndex: 33
+            enableMouthAtlas: false // Native model mouth bone animations preserved
           },
           isOnline: true,
           studentData: student,
@@ -998,7 +1004,8 @@ export class PixelHUDManager {
         mouthStyle: mouthCfg.mouthStyle || 'dynamic',
         currentMouthIndex: mouthCfg.currentMouthIndex ?? 0,
         mouthTimelines: JSON.stringify(timelines),
-        isVRM: !!model.isVRM
+        isVRM: !!model.isVRM,
+        enableMouthAtlas: !!(mouthCfg && mouthCfg.enableMouthAtlas)
       });
     }
 
@@ -1032,7 +1039,8 @@ export class PixelHUDManager {
             idleMouthIndex: model.mouthConfig.idleMouthIndex,
             pickupMouthIndex: model.mouthConfig.pickupMouthIndex,
             mouthStyle: model.mouthConfig.mouthStyle,
-            currentMouthIndex: 0
+            currentMouthIndex: 0,
+            enableMouthAtlas: false
           });
           console.log(`[HUD] Auto-detected ${mesh.animations.length} clips for ${model.name}. Default idle: ${model.animations.defaultIdle}`);
         }

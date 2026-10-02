@@ -69,6 +69,10 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       isVRM: {
         type: 'boolean',
         default: false
+      },
+      enableMouthAtlas: {
+        type: 'boolean',
+        default: false
       }
     },
 
@@ -146,8 +150,10 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       this.el.addEventListener('dragstart', this.onDragStart);
       this.el.addEventListener('dragend', this.onDragEnd);
 
-      // Pre-load the Character_Mouth_High atlas
-      this.loadMouthAtlas();
+      // Pre-load the Character_Mouth_High atlas ONLY if enabled (e.g. built-in Miyu)
+      if (this.data.enableMouthAtlas) {
+        this.loadMouthAtlas();
+      }
 
       // Check if mesh is already present (e.g. cached or synchronous)
       if (this.el.getObject3D('mesh')) {
@@ -291,11 +297,11 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
         this.playClip(this.currentIdleName, true);
       }
 
-      // 2. Locate mouth materials
-      this.findMouthMaterials(model);
-
-      // 3. Apply mouth shape
-      this.setMouthShapeIndex(this.activeMouthIndex);
+      // 2. Locate mouth materials & apply mouth shape (ONLY if enableMouthAtlas is true)
+      if (this.data.enableMouthAtlas) {
+        this.findMouthMaterials(model);
+        this.setMouthShapeIndex(this.activeMouthIndex);
+      }
     },
 
     /**
@@ -358,6 +364,7 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
      * Sets any mouth shape: Standard (0..60) or Extra UI ('e0'..'e129')
      */
     setMouthShapeIndex: function (val) {
+      if (!this.data.enableMouthAtlas) return;
       const THREE = getTHREE();
       const isExtra = typeof val === 'string' && val.startsWith('e');
       if (isExtra) {
@@ -458,7 +465,7 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       }
 
       // In dynamic mode: if animation has custom mouth timeline, let tick handle it; otherwise fallback to panic shout
-      if (this.data.mouthStyle === 'dynamic') {
+      if (this.data.enableMouthAtlas && this.data.mouthStyle === 'dynamic') {
         const hasTimeline = this.animationMouthTimelines && this.animationMouthTimelines[pickup];
         if (!hasTimeline) {
           this.setMouthShapeIndex(this.data.pickupMouthIndex || MOUTH_PRESETS.PANIC_SHOUT);
@@ -492,7 +499,7 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       }
 
       // In dynamic mode, automatically return to gentle closed smile (#00)
-      if (this.data.mouthStyle === 'dynamic') {
+      if (this.data.enableMouthAtlas && this.data.mouthStyle === 'dynamic') {
         this.setMouthShapeIndex(this.data.idleMouthIndex || MOUTH_PRESETS.IDLE_SMILE);
       }
     },
@@ -502,7 +509,7 @@ if (typeof AFRAME !== 'undefined' && !AFRAME.components['model-animator']) {
       this.mixer.update(timeDelta / 1000);
 
       // Dynamically evaluate keyframed mouth expression along the animation timeline
-      if (this.currentClipName && this.animationMouthTimelines && this.animationMouthTimelines[this.currentClipName]) {
+      if (this.data.enableMouthAtlas && this.currentClipName && this.animationMouthTimelines && this.animationMouthTimelines[this.currentClipName]) {
         const timeline = this.animationMouthTimelines[this.currentClipName];
         if (timeline && timeline.length > 0 && this.currentAction) {
           const clip = this.currentAction.getClip();
