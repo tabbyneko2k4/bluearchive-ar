@@ -388,7 +388,7 @@ export function autoDetectBAAnimations(clips, modelId = 'Character', rawName = '
     id: modelId,
     name: `${rawName.toUpperCase()} // BA ONLINE`,
     subtitle: `Online Model (${names.length} clips)`,
-    scale: { x: 100, y: 100, z: 100 }, // Blue Archive models are exported in cm (x0.01 scale)
+    scale: { x: 1, y: 1, z: 1 }, // Blue Archive models from GitHub repository have native 1:1 scale (meters)
     animations: {
       defaultIdle: formationIdle || fallbackIdle,
       idleList: idleList,

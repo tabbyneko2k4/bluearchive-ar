@@ -28,6 +28,10 @@ export const MIYU_MODEL_CONFIG = {
     }
   },
   audio: {
+    spawn: [
+      'https://static.wikitide.net/bluearchivewiki/b/be/Miyu_Formation_In_1.ogg',
+      'https://static.wikitide.net/bluearchivewiki/4/4b/Miyu_Formation_In_2.ogg'
+    ],
     idle: [
       './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_1.ogg',
       './assets/models/miyu/audio/idle/Miyu_Cafe_monolog_2.ogg',

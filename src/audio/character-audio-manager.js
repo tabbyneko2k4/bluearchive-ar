@@ -1,10 +1,11 @@
 /**
  * Character Audio Manager
- * Manages character voice lines for Idle and Pickup states.
+ * Manages character voice lines for Spawn, Idle, and Pickup states.
  * Features:
- * - Sequential audio playback per state (0 -> 1 -> 2 -> ... -> 0)
- * - 20-second pause interval between tracks
- * - Instant state switching (Idle <-> Pickup)
+ * - Spawn audio: Plays <Student>_Formation_In_<number>.ogg upon character deployment
+ * - Pickup audio: Plays <Student>_Formation_Select.ogg instantly when picked up/dragged
+ * - Idle audio: Plays random <Student>_Cafe_monolog_<number>.ogg every 20 seconds
+ * - Strict non-overlap: 20-second timer ONLY counts down AFTER the previous voice finishes speaking
  * - Mute/Unmute state persisted in localStorage
  * - Safe autoplay policy handling
  */
@@ -14,12 +15,12 @@ export class CharacterAudioManager {
     this.intervalSeconds = options.intervalSeconds || 20;
     this.audioConfig = null;
     this.characterName = '';
-    this.state = 'stopped'; // 'idle' | 'pickup' | 'stopped'
-    this.idleIndex = 0;
-    this.pickupIndex = 0;
+    this.state = 'stopped'; // 'spawn' | 'idle' | 'pickup' | 'stopped'
     this.currentAudio = null;
     this.nextTimer = null;
     this.userInteracted = false;
+    this.isDragging = false;
+    this.lastIdleTrack = null;
     this.onToast = options.onToast || null;
 
     // Load persisted mute preference (default: false / unmuted)
@@ -48,15 +49,14 @@ export class CharacterAudioManager {
 
   /**
    * Loads a character's audio configuration
-   * @param {Object} audioConfig - { idle: string[], pickup: string[], intervalSeconds?: number }
+   * @param {Object} audioConfig - { spawn?: string[], pickup?: string[], idle?: string[], intervalSeconds?: number }
    * @param {string} characterName - Character display name
    */
   loadCharacter(audioConfig, characterName = '') {
     this.stop();
     this.audioConfig = audioConfig || null;
     this.characterName = characterName;
-    this.idleIndex = 0;
-    this.pickupIndex = 0;
+    this.lastIdleTrack = null;
 
     if (this.audioConfig && typeof this.audioConfig.intervalSeconds === 'number') {
       this.intervalSeconds = this.audioConfig.intervalSeconds;
@@ -65,42 +65,66 @@ export class CharacterAudioManager {
     }
 
     console.log(`[CharacterAudio] Loaded audio config for ${characterName}:`, {
-      idleCount: this.audioConfig?.idle?.length || 0,
+      spawnCount: this.audioConfig?.spawn?.length || 0,
       pickupCount: this.audioConfig?.pickup?.length || 0,
+      idleCount: this.audioConfig?.idle?.length || 0,
       interval: `${this.intervalSeconds}s`
     });
+  }
+
+  /**
+   * Plays spawn sound (Formation_In_<number>.ogg) upon model creation.
+   * Once finished, transitions to Idle and waits 20s before the first idle line.
+   */
+  playSpawn() {
+    this.stopCurrentAudio();
+    this.clearNextTimer();
+    this.state = 'spawn';
+
+    const spawnList = this.audioConfig?.spawn;
+    if (Array.isArray(spawnList) && spawnList.length > 0) {
+      // Pick random Formation_In sound
+      const trackSrc = spawnList[Math.floor(Math.random() * spawnList.length)];
+      this.playTrack(trackSrc, 'spawn', () => {
+        // When spawn voice finishes, wait intervalSeconds before starting idle voice
+        console.log(`[CharacterAudio] Spawn speech complete. Scheduling idle in ${this.intervalSeconds}s.`);
+        this.startIdle({ immediate: false });
+      });
+    } else {
+      // If no spawn track found, wait intervalSeconds before idle
+      this.startIdle({ immediate: false });
+    }
   }
 
   /**
    * Starts the Idle audio cycle
    * @param {Object} options - { immediate: boolean }
    */
-  startIdle({ immediate = true } = {}) {
+  startIdle({ immediate = false } = {}) {
     if (!this.audioConfig || !this.audioConfig.idle || this.audioConfig.idle.length === 0) {
       return;
     }
 
     this.clearNextTimer();
-    this.stopCurrentAudio();
     this.state = 'idle';
 
     if (immediate) {
-      this.playCurrentStateTrack();
+      this.playRandomIdleTrack();
     } else {
-      // Delay before next idle audio (e.g. 20s after drop)
       console.log(`[CharacterAudio] Idle state queued, next audio in ${this.intervalSeconds}s`);
       this.nextTimer = setTimeout(() => {
         if (this.state === 'idle') {
-          this.playCurrentStateTrack();
+          this.playRandomIdleTrack();
         }
       }, this.intervalSeconds * 1000);
     }
   }
 
   /**
-   * Starts the Pickup audio cycle immediately
+   * Starts the Pickup audio line immediately (<Student>_Formation_Select.ogg)
    */
   startPickup() {
+    this.isDragging = true;
     if (!this.audioConfig || !this.audioConfig.pickup || this.audioConfig.pickup.length === 0) {
       return;
     }
@@ -109,38 +133,73 @@ export class CharacterAudioManager {
     this.stopCurrentAudio();
     this.state = 'pickup';
 
-    // Instantly play the pickup voice line
-    this.playCurrentStateTrack();
+    // Formation_Select sound
+    const pickupList = this.audioConfig.pickup;
+    const trackSrc = pickupList[Math.floor(Math.random() * pickupList.length)];
+
+    this.playTrack(trackSrc, 'pickup', () => {
+      console.log('[CharacterAudio] Pickup voice finished speaking.');
+      // If the user already dropped the model while voice was playing, queue idle
+      if (!this.isDragging && this.state === 'pickup') {
+        this.startIdle({ immediate: false });
+      }
+    });
   }
 
   /**
-   * Plays the current track for the active state
+   * Called when user drops / releases the character
    */
-  playCurrentStateTrack() {
-    if (this.state === 'stopped' || !this.audioConfig) return;
+  onDrop() {
+    this.isDragging = false;
+    // If audio has already stopped speaking, start the 20s idle countdown
+    if (!this.currentAudio && (this.state === 'pickup' || this.state === 'idle')) {
+      this.startIdle({ immediate: false });
+    }
+  }
 
-    const list = this.state === 'pickup' ? this.audioConfig.pickup : this.audioConfig.idle;
+  /**
+   * Plays a random idle line from audioConfig.idle (Cafe Monologue)
+   * Avoids repeating the immediate previous line if multiple tracks are available.
+   */
+  playRandomIdleTrack() {
+    if (this.state !== 'idle' || !this.audioConfig) return;
+
+    const list = this.audioConfig.idle;
     if (!Array.isArray(list) || list.length === 0) return;
 
-    const currentIndex = this.state === 'pickup' ? this.pickupIndex : this.idleIndex;
-    const trackSrc = list[currentIndex % list.length];
-    if (!trackSrc) return;
-
-    // Advance index for subsequent play
-    if (this.state === 'pickup') {
-      this.pickupIndex = (this.pickupIndex + 1) % list.length;
-    } else {
-      this.idleIndex = (this.idleIndex + 1) % list.length;
+    let available = list;
+    if (list.length > 1 && this.lastIdleTrack) {
+      available = list.filter(t => t !== this.lastIdleTrack);
     }
 
-    // Extract clean name for logging/toast
-    const fileName = trackSrc.split('/').pop().replace(/\.[^/.]+$/, '');
-    console.log(`[CharacterAudio] Playing [${this.state.toUpperCase()}] track: ${fileName} (${trackSrc})`);
+    const trackSrc = available[Math.floor(Math.random() * available.length)];
+    this.lastIdleTrack = trackSrc;
 
-    // If muted, do not play audio sound, but schedule next cycle
+    this.playTrack(trackSrc, 'idle', () => {
+      // Wait exactly 20s AFTER track finishes speaking before playing the next
+      console.log(`[CharacterAudio] Idle line ended. Waiting ${this.intervalSeconds}s for next voice line.`);
+      this.scheduleNextTrack('idle');
+    });
+  }
+
+  /**
+   * Internal helper to load and play an audio track
+   * @param {string} trackSrc - Audio URL / path
+   * @param {string} state - Expected state ('spawn' | 'pickup' | 'idle')
+   * @param {Function} onEnded - Callback executed ONLY after audio completes speaking
+   */
+  playTrack(trackSrc, state, onEnded) {
+    if (!trackSrc) return;
+
+    const fileName = trackSrc.split('/').pop().replace(/\.[^/.]+$/, '');
+    console.log(`[CharacterAudio] Playing [${state.toUpperCase()}] track: ${fileName}`);
+
+    // If muted, do not produce sound but simulate delay + callback
     if (this.isMuted) {
-      console.log(`[CharacterAudio] Audio is currently MUTED. Scheduling next track in ${this.intervalSeconds}s.`);
-      this.scheduleNextTrack(this.state);
+      console.log(`[CharacterAudio] Muted. Skipping playback for: ${fileName}`);
+      if (typeof onEnded === 'function') {
+        onEnded();
+      }
       return;
     }
 
@@ -153,8 +212,9 @@ export class CharacterAudioManager {
         if (this.currentAudio === audio) {
           this.currentAudio = null;
         }
-        console.log(`[CharacterAudio] Track ended: ${fileName}. Waiting ${this.intervalSeconds}s for next audio.`);
-        this.scheduleNextTrack(this.state);
+        if (typeof onEnded === 'function') {
+          onEnded();
+        }
       });
 
       audio.addEventListener('error', (e) => {
@@ -162,26 +222,30 @@ export class CharacterAudioManager {
         if (this.currentAudio === audio) {
           this.currentAudio = null;
         }
-        this.scheduleNextTrack(this.state);
+        if (typeof onEnded === 'function') {
+          onEnded();
+        }
       });
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn('[CharacterAudio] Audio play blocked or failed:', err);
-          // Wait and retry on next interval
-          this.scheduleNextTrack(this.state);
+          if (typeof onEnded === 'function') {
+            onEnded();
+          }
         });
       }
     } catch (e) {
-      console.error('[CharacterAudio] Unexpected error in playCurrentStateTrack:', e);
-      this.scheduleNextTrack(this.state);
+      console.error('[CharacterAudio] Unexpected error in playTrack:', e);
+      if (typeof onEnded === 'function') {
+        onEnded();
+      }
     }
   }
 
   /**
-   * Schedules the next audio after intervalSeconds
-   * @param {string} state - The state to continue
+   * Schedules next track after intervalSeconds
    */
   scheduleNextTrack(state) {
     this.clearNextTimer();
@@ -189,13 +253,15 @@ export class CharacterAudioManager {
 
     this.nextTimer = setTimeout(() => {
       if (this.state === state) {
-        this.playCurrentStateTrack();
+        if (state === 'idle') {
+          this.playRandomIdleTrack();
+        }
       }
     }, this.intervalSeconds * 1000);
   }
 
   /**
-   * Stops any currently playing audio track
+   * Stops currently playing audio
    */
   stopCurrentAudio() {
     if (this.currentAudio) {
@@ -222,6 +288,7 @@ export class CharacterAudioManager {
    */
   stop() {
     this.state = 'stopped';
+    this.isDragging = false;
     this.clearNextTimer();
     this.stopCurrentAudio();
     console.log('[CharacterAudio] Playback stopped.');
@@ -229,7 +296,6 @@ export class CharacterAudioManager {
 
   /**
    * Toggles mute state
-   * @returns {boolean} Current isMuted state
    */
   toggleMute() {
     return this.setMuted(!this.isMuted);
@@ -237,8 +303,6 @@ export class CharacterAudioManager {
 
   /**
    * Sets mute state
-   * @param {boolean} muted
-   * @returns {boolean}
    */
   setMuted(muted) {
     this.isMuted = !!muted;
@@ -251,12 +315,12 @@ export class CharacterAudioManager {
     if (this.isMuted) {
       this.stopCurrentAudio();
     } else {
-      // If unmuted and in idle/pickup, start audio
       if (this.state === 'idle' && !this.currentAudio && !this.nextTimer) {
-        this.playCurrentStateTrack();
+        this.playRandomIdleTrack();
       }
     }
 
     return this.isMuted;
   }
 }
+

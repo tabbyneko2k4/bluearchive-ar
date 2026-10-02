@@ -19,6 +19,7 @@ import {
   autoDetectBAAnimations,
   FALLBACK_AVATAR
 } from '../utils/ba-catalog-service';
+import { fetchCharacterVoicesFromWiki } from '../utils/ba-voice-service';
 
 // Ensure custom A-Frame components are registered
 import '../components/three-ar-drag';
@@ -797,7 +798,7 @@ export class PixelHUDManager {
           name: `${student.name.toUpperCase()}`,
           subtitle: `${student.school} • ${student.role}`,
           src: blobUrl,
-          scale: { x: 100, y: 100, z: 100 },
+          scale: { x: 1, y: 1, z: 1 },
           iconSvg: `<img src="${student.avatarUrl}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;" onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'"/>`,
           animations: null, // Auto-detected when loaded into scene!
           mouthConfig: {
@@ -1017,9 +1018,14 @@ export class PixelHUDManager {
         if (THREE) {
           const bbox = new THREE.Box3().setFromObject(mesh);
           const size = bbox.getSize(new THREE.Vector3());
-          if (size.y < 0.1 && (!model.scale || model.scale.y <= 1)) {
+          // Auto scale detection: cm scale (< 0.15m height when scale is 1) vs m scale (0.5m - 2.5m)
+          if (size.y < 0.15 && (!model.scale || model.scale.y <= 1)) {
             model.scale = { x: 100, y: 100, z: 100 };
             const s = 100 * this.transformState.scale;
+            entity.setAttribute('scale', `${s} ${s} ${s}`);
+          } else if (size.y > 15 && model.scale && model.scale.y >= 50) {
+            model.scale = { x: 1, y: 1, z: 1 };
+            const s = 1 * this.transformState.scale;
             entity.setAttribute('scale', `${s} ${s} ${s}`);
           }
         }
@@ -1058,16 +1064,28 @@ export class PixelHUDManager {
     });
 
     entity.addEventListener('dragend', () => {
-      this.audioManager.startIdle({ immediate: false });
+      this.audioManager.onDrop();
     });
 
     scene.appendChild(entity);
 
-    // Initialize and start character voice audio
-    if (model.audio) {
-      this.audioManager.loadCharacter(model.audio, model.name);
-      this.audioManager.startIdle({ immediate: true });
-    }
+    // Initialize and start character voice audio (Spawn sound -> 20s -> Random Idle Monologue)
+    (async () => {
+      let audioCfg = model.audio;
+      if (!audioCfg || (!audioCfg.spawn && !audioCfg.idle && !audioCfg.pickup)) {
+        const queryName = model.name || model.id;
+        const fetchedCfg = await fetchCharacterVoicesFromWiki(queryName);
+        if (fetchedCfg) {
+          audioCfg = fetchedCfg;
+          model.audio = fetchedCfg;
+        }
+      }
+
+      if (this.activeModelId === model.id && audioCfg) {
+        this.audioManager.loadCharacter(audioCfg, model.name);
+        this.audioManager.playSpawn();
+      }
+    })();
 
     const dragComp = entity.components ? entity.components['three-ar-drag'] : null;
     if (dragComp && dragComp.targetPosition) {
