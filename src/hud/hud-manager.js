@@ -33,7 +33,7 @@ export class PixelHUDManager {
       onToast: (msg, type) => this.showToast(msg, type)
     });
     this.hudVisible = true;
-    this.drawerOpen = false;
+    this.drawerOpen = true;
     this.activeTab = 'models';
     this.autoHideEnabled = true;
     this.autoHideTimer = null;
@@ -111,6 +111,10 @@ export class PixelHUDManager {
     this.showToast('BLUE ARCHIVE AR READY', 'blue');
     this.setupAFrameListeners();
     this.initDebugGrids();
+
+    // Show character selection modal / drawer first on project load
+    this.switchTab('models');
+    this.toggleDrawer(true);
   }
 
   populateAssetsTag() {
@@ -281,10 +285,33 @@ export class PixelHUDManager {
       this.toggleDrawer(false);
     });
 
-    document.getElementById('dock-btn-spawn').addEventListener('click', () => {
-      this.switchTab('models');
-      this.toggleDrawer(true);
-    });
+    const dockBtnModels = document.getElementById('dock-btn-models');
+    if (dockBtnModels) {
+      dockBtnModels.addEventListener('click', () => {
+        if (this.drawerOpen && this.activeTab === 'models') {
+          this.toggleDrawer(false);
+        } else {
+          this.switchTab('models');
+          this.toggleDrawer(true);
+        }
+      });
+    }
+
+    const dockBtnSpawn = document.getElementById('dock-btn-spawn');
+    if (dockBtnSpawn) {
+      dockBtnSpawn.addEventListener('click', () => {
+        const placed = this.models.find(m => m.placed);
+        if (!placed) {
+          const idToSpawn = this.activeModelId || (this.models[0] && this.models[0].id);
+          if (idToSpawn) {
+            this.spawnModelById(idToSpawn);
+          }
+        } else {
+          this.recenterScene();
+          this.showToast(`RECENTERED: ${placed.name}`, 'blue');
+        }
+      });
+    }
 
     document.getElementById('dock-btn-recenter').addEventListener('click', () => {
       this.recenterScene();
@@ -294,9 +321,17 @@ export class PixelHUDManager {
       this.toggleLights();
     });
 
-    document.getElementById('dock-btn-controls').addEventListener('click', () => {
-      this.toggleDrawer();
-    });
+    const dockBtnControls = document.getElementById('dock-btn-controls');
+    if (dockBtnControls) {
+      dockBtnControls.addEventListener('click', () => {
+        if (this.drawerOpen && this.activeTab !== 'models') {
+          this.toggleDrawer(false);
+        } else {
+          this.switchTab('telemetry');
+          this.toggleDrawer(true);
+        }
+      });
+    }
 
     const inputScale = document.getElementById('input-scale');
     const inputPosY = document.getElementById('input-pos-y');
@@ -539,14 +574,51 @@ export class PixelHUDManager {
     }
 
     // Student Bio Modal Events
+    const modalBio = document.getElementById('student-bio-modal');
     const btnCloseBio = document.getElementById('btn-close-bio-modal');
     const btnDismissBio = document.getElementById('btn-bio-dismiss');
-    if (btnCloseBio) btnCloseBio.addEventListener('click', () => this.closeStudentBioModal());
-    if (btnDismissBio) btnDismissBio.addEventListener('click', () => this.closeStudentBioModal());
+
+    const handleDismissBio = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.closeStudentBioModal();
+    };
+
+    if (btnCloseBio) {
+      btnCloseBio.addEventListener('click', handleDismissBio);
+      btnCloseBio.addEventListener('touchend', handleDismissBio);
+    }
+    if (btnDismissBio) {
+      btnDismissBio.addEventListener('click', handleDismissBio);
+      btnDismissBio.addEventListener('touchend', handleDismissBio);
+    }
+
+    if (modalBio) {
+      modalBio.addEventListener('click', (e) => {
+        if (e.target === modalBio) {
+          handleDismissBio(e);
+        }
+      });
+      const bioCard = modalBio.querySelector('.student-bio-card');
+      if (bioCard) {
+        bioCard.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeStudentBioModal();
+      }
+    });
 
     const btnBioSpawn = document.getElementById('btn-bio-spawn-action');
     if (btnBioSpawn) {
-      btnBioSpawn.addEventListener('click', () => {
+      btnBioSpawn.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (this.activeBioStudent) {
           this.spawnOnlineStudent(this.activeBioStudent);
         }
@@ -866,21 +938,32 @@ export class PixelHUDManager {
     if (tabName === 'telemetry') {
       this.updateControlsPanelForActiveModel();
     }
+    this.updateDockButtonsState();
+  }
+
+  updateDockButtonsState() {
+    const modelsBtn = document.getElementById('dock-btn-models');
+    const controlsBtn = document.getElementById('dock-btn-controls');
+
+    if (modelsBtn) {
+      modelsBtn.classList.toggle('active', this.drawerOpen && this.activeTab === 'models');
+    }
+    if (controlsBtn) {
+      controlsBtn.classList.toggle('active', this.drawerOpen && this.activeTab !== 'models');
+    }
   }
 
   toggleDrawer(forceState) {
     this.drawerOpen = forceState !== undefined ? forceState : !this.drawerOpen;
     const drawer = document.getElementById('bento-drawer');
-    const controlsBtn = document.getElementById('dock-btn-controls');
 
     if (this.drawerOpen) {
       drawer.classList.remove('closed');
       this.updateControlsPanelForActiveModel();
-      controlsBtn.classList.add('active');
     } else {
       drawer.classList.add('closed');
-      controlsBtn.classList.remove('active');
     }
+    this.updateDockButtonsState();
   }
 
   setHUDVisibility(visible) {
