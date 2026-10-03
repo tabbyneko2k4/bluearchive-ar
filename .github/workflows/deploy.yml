@@ -23,6 +23,9 @@ jobs:
         with:
           lfs: true
 
+      - name: Checkout LFS objects
+        run: git lfs pull
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -33,6 +36,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          BASE_PATH: /bluearchive-ar/
         run: npm run build
 
       - name: Upload artifact
