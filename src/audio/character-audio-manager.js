@@ -32,6 +32,7 @@ export class CharacterAudioManager {
     }
     this.isMuted = savedMute;
 
+    this.audioPool = new Map();
     this.setupUserInteractionListener();
   }
 
@@ -57,6 +58,7 @@ export class CharacterAudioManager {
     this.audioConfig = audioConfig || null;
     this.characterName = characterName;
     this.lastIdleTrack = null;
+    this.audioPool.clear();
 
     if (this.audioConfig && typeof this.audioConfig.intervalSeconds === 'number') {
       this.intervalSeconds = this.audioConfig.intervalSeconds;
@@ -64,11 +66,29 @@ export class CharacterAudioManager {
       this.intervalSeconds = 20;
     }
 
+    // Preload audio elements for zero-latency playback
+    if (this.audioConfig) {
+      const allTracks = [
+        ...(this.audioConfig.spawn || []),
+        ...(this.audioConfig.pickup || []),
+        ...(this.audioConfig.idle || [])
+      ];
+      allTracks.forEach(src => {
+        if (!src || this.audioPool.has(src)) return;
+        try {
+          const a = new Audio(src);
+          a.preload = 'auto';
+          this.audioPool.set(src, a);
+        } catch (e) {}
+      });
+    }
+
     console.log(`[CharacterAudio] Loaded audio config for ${characterName}:`, {
       spawnCount: this.audioConfig?.spawn?.length || 0,
       pickupCount: this.audioConfig?.pickup?.length || 0,
       idleCount: this.audioConfig?.idle?.length || 0,
-      interval: `${this.intervalSeconds}s`
+      interval: `${this.intervalSeconds}s`,
+      isCachedLocally: !!this.audioConfig?.isCachedLocally
     });
   }
 
@@ -204,28 +224,41 @@ export class CharacterAudioManager {
     }
 
     try {
-      const audio = new Audio(trackSrc);
-      audio.preload = 'auto';
+      let audio = this.audioPool.get(trackSrc);
+      if (audio) {
+        audio.currentTime = 0;
+      } else {
+        audio = new Audio(trackSrc);
+        audio.preload = 'auto';
+        this.audioPool.set(trackSrc, audio);
+      }
       this.currentAudio = audio;
 
-      audio.addEventListener('ended', () => {
+      const handleEnded = () => {
+        audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
         if (this.currentAudio === audio) {
           this.currentAudio = null;
         }
         if (typeof onEnded === 'function') {
           onEnded();
         }
-      });
+      };
 
-      audio.addEventListener('error', (e) => {
-        console.warn(`[CharacterAudio] Failed to load/play audio: ${trackSrc}`, e);
+      const handleError = (e) => {
+        audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
+        console.warn(`[CharacterAudio] Failed to load/play audio: ${fileName}`, e);
         if (this.currentAudio === audio) {
           this.currentAudio = null;
         }
         if (typeof onEnded === 'function') {
           onEnded();
         }
-      });
+      };
+
+      audio.addEventListener('ended', handleEnded);
+      audio.addEventListener('error', handleError);
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {

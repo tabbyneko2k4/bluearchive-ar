@@ -397,6 +397,16 @@ export function getHUDHTMLTemplate() {
           <div class="student-bio-desc" id="bio-desc">
             Profile text...
           </div>
+          <!-- Model Variants in Bio Modal -->
+          <div class="bio-variants-section hidden" id="bio-variants-section">
+            <div class="control-header" style="margin-top: 6px;">
+              <span class="control-label">AVAILABLE 3D MODELS</span>
+              <span class="control-value" id="bio-variants-count">1 VARIANT</span>
+            </div>
+            <div class="bio-variants-chips" id="bio-variants-chips">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
         </div>
         <div class="student-bio-footer">
           <button class="bento-tab-btn" id="btn-bio-dismiss" style="padding: 8px 14px;">CLOSE</button>
@@ -404,6 +414,34 @@ export function getHUDHTMLTemplate() {
           <button class="btn-online-spawn" id="btn-bio-spawn-action" style="padding: 8px 16px;">
             <span>SPAWN 3D IN AR</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Variant Selection Modal (Choose costume/model before loading) -->
+    <div class="model-variant-modal-overlay hidden" id="model-variant-modal">
+      <div class="model-variant-card">
+        <div class="model-variant-header">
+          <div class="variant-title-group">
+            <img class="variant-header-avatar" id="variant-modal-avatar" src="" alt="Student Avatar" />
+            <div>
+              <h3 class="variant-modal-student-name" id="variant-modal-student-name">Student Name</h3>
+              <div class="variant-modal-subtitle" id="variant-modal-count-text">Select Costume / Model Variant</div>
+            </div>
+          </div>
+          <button class="bento-close-btn" id="btn-close-variant-modal">✕</button>
+        </div>
+        <div class="model-variant-body">
+          <div class="variant-prompt-banner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            <span>CHỌN MODEL TRANG PHỤC ĐỂ TẢI &amp; SPAWN:</span>
+          </div>
+          <div class="variant-cards-list" id="variant-cards-list">
+            <!-- Dynamically populated variant cards -->
+          </div>
+        </div>
+        <div class="model-variant-footer">
+          <button class="bento-tab-btn" id="btn-variant-cancel" style="padding: 8px 16px;">CLOSE</button>
         </div>
       </div>
     </div>

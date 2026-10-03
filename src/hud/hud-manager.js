@@ -17,9 +17,10 @@ import {
   getUnifiedCharacterCatalog,
   downloadGLBWithProgress,
   autoDetectBAAnimations,
+  cleanStudentName,
   FALLBACK_AVATAR
 } from '../utils/ba-catalog-service';
-import { fetchCharacterVoicesFromWiki } from '../utils/ba-voice-service';
+import { fetchCharacterVoicesFromWiki, downloadAndCacheCharacterVoices } from '../utils/ba-voice-service';
 
 // Ensure custom A-Frame components are registered
 import '../components/three-ar-drag';
@@ -45,6 +46,8 @@ export class PixelHUDManager {
     this.selectedSchool = 'all';
     this.searchQuery = '';
     this.activeBioStudent = null;
+    this.activeVariantStudent = null;
+    this.selectedBioVariant = null;
     this.isCatalogLoading = false;
 
     // Lighting, Shader & Debug States
@@ -609,9 +612,46 @@ export class PixelHUDManager {
       }
     }
 
+    // Model Variant Selection Modal Events
+    const modalVariant = document.getElementById('model-variant-modal');
+    const btnCloseVariant = document.getElementById('btn-close-variant-modal');
+    const btnCancelVariant = document.getElementById('btn-variant-cancel');
+
+    const handleDismissVariant = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.closeModelVariantModal();
+    };
+
+    if (btnCloseVariant) {
+      btnCloseVariant.addEventListener('click', handleDismissVariant);
+      btnCloseVariant.addEventListener('touchend', handleDismissVariant);
+    }
+    if (btnCancelVariant) {
+      btnCancelVariant.addEventListener('click', handleDismissVariant);
+      btnCancelVariant.addEventListener('touchend', handleDismissVariant);
+    }
+
+    if (modalVariant) {
+      modalVariant.addEventListener('click', (e) => {
+        if (e.target === modalVariant) {
+          handleDismissVariant(e);
+        }
+      });
+      const variantCard = modalVariant.querySelector('.model-variant-card');
+      if (variantCard) {
+        variantCard.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      }
+    }
+
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         this.closeStudentBioModal();
+        this.closeModelVariantModal();
       }
     });
 
@@ -620,7 +660,12 @@ export class PixelHUDManager {
       btnBioSpawn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.activeBioStudent) {
-          this.spawnOnlineStudent(this.activeBioStudent);
+          const chosenVariant = this.selectedBioVariant || (this.activeBioStudent.models && this.activeBioStudent.models[0]);
+          if (chosenVariant) {
+            this.spawnOnlineModelVariant(this.activeBioStudent, chosenVariant);
+          } else {
+            this.spawnOnlineStudent(this.activeBioStudent);
+          }
         }
       });
     }
@@ -722,7 +767,13 @@ export class PixelHUDManager {
     }
 
     container.innerHTML = filtered.map((item) => {
-      const isPlaced = this.models.some(m => m.id === `online_${item.id}` && m.placed);
+      const hasMulti = item.models && item.models.length > 1;
+      const placedVariant = item.models ? item.models.find(m => {
+        const mId = `online_${cleanStudentName(m.id || m.fileName)}`;
+        return this.models.some(model => model.id === mId && model.placed);
+      }) : null;
+      const isPlaced = Boolean(placedVariant);
+
       return `
         <div class="online-student-card ${item.hasModel ? 'has-glb' : ''}">
           <div class="student-meta-left" data-student-id="${item.id}">
@@ -732,7 +783,11 @@ export class PixelHUDManager {
             <div class="student-info-col">
               <div class="student-name-row">
                 <span class="student-name-text">${item.name}</span>
-                <span class="tag-badge ${item.hasModel ? 'tag-3d-ready' : 'tag-3d-none'}">${item.hasModel ? '3D GLB' : 'NO 3D'}</span>
+                ${
+                  hasMulti
+                    ? `<span class="tag-badge tag-models-count">${item.models.length} MODELS</span>`
+                    : `<span class="tag-badge ${item.hasModel ? 'tag-3d-ready' : 'tag-3d-none'}">${item.hasModel ? '3D GLB' : 'NO 3D'}</span>`
+                }
               </div>
               <div class="student-tags-row">
                 <span class="tag-badge tag-school">${item.school}</span>
@@ -744,11 +799,23 @@ export class PixelHUDManager {
             <button class="btn-student-info" data-action="info" data-student-id="${item.id}" title="Student Dossier / Bio">ℹ</button>
             ${
               item.hasModel
-                ? `
-                <button class="btn-online-spawn" data-action="spawn" data-student-id="${item.id}" id="spawn-btn-${item.id}">
-                  ${isPlaced ? 'DESPAWN' : 'SPAWN'}
-                </button>
-              `
+                ? hasMulti
+                  ? isPlaced
+                    ? `
+                    <button class="btn-online-spawn" data-action="despawn-variant" data-student-id="${item.id}" data-variant-id="${placedVariant.id}" id="spawn-btn-${item.id}">
+                      DESPAWN
+                    </button>
+                    `
+                    : `
+                    <button class="btn-online-spawn btn-choose-variant" data-action="choose-variant" data-student-id="${item.id}" id="spawn-btn-${item.id}">
+                      CHOOSE MODEL ▾
+                    </button>
+                    `
+                  : `
+                  <button class="btn-online-spawn" data-action="spawn" data-student-id="${item.id}" id="spawn-btn-${item.id}">
+                    ${isPlaced ? 'DESPAWN' : 'SPAWN'}
+                  </button>
+                  `
                 : ''
             }
           </div>
@@ -765,15 +832,101 @@ export class PixelHUDManager {
       });
     });
 
-    // Attach click for online spawning
+    // Attach click for choosing variant modal
+    container.querySelectorAll('[data-action="choose-variant"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const studentId = e.currentTarget.getAttribute('data-student-id');
+        const student = this.onlineCatalog.find(s => String(s.id) === String(studentId));
+        if (student) this.openModelVariantModal(student);
+      });
+    });
+
+    // Attach click for single model spawning
     container.querySelectorAll('[data-action="spawn"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const studentId = e.currentTarget.getAttribute('data-student-id');
         const student = this.onlineCatalog.find(s => String(s.id) === String(studentId));
-        if (student) this.spawnOnlineStudent(student);
+        if (student && student.models && student.models.length > 0) {
+          this.spawnOnlineModelVariant(student, student.models[0]);
+        }
       });
     });
+
+    // Attach click for despawning active variant from card
+    container.querySelectorAll('[data-action="despawn-variant"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const variantId = e.currentTarget.getAttribute('data-variant-id');
+        const modelId = `online_${cleanStudentName(variantId)}`;
+        this.removeModelById(modelId);
+        this.renderOnlineRoster();
+      });
+    });
+  }
+
+  openModelVariantModal(student) {
+    this.activeVariantStudent = student;
+    const modal = document.getElementById('model-variant-modal');
+    if (!modal) return;
+
+    const imgAvatar = document.getElementById('variant-modal-avatar');
+    const txtName = document.getElementById('variant-modal-student-name');
+    const txtCount = document.getElementById('variant-modal-count-text');
+    const listEl = document.getElementById('variant-cards-list');
+
+    if (imgAvatar) {
+      imgAvatar.src = student.portraitUrl || student.avatarUrl || FALLBACK_AVATAR;
+      imgAvatar.onerror = () => { imgAvatar.src = FALLBACK_AVATAR; };
+    }
+    if (txtName) txtName.textContent = student.name;
+    if (txtCount) txtCount.textContent = `${student.school} • ${student.models.length} Model Variants Available`;
+
+    if (listEl) {
+      listEl.innerHTML = (student.models || []).map((variant) => {
+        const variantModelId = `online_${cleanStudentName(variant.id || variant.fileName)}`;
+        const isPlaced = this.models.some(m => m.id === variantModelId && m.placed);
+        const skinLabel = variant.skin || 'Original';
+
+        return `
+          <div class="variant-card-item ${isPlaced ? 'active-in-ar' : ''}">
+            <div class="variant-item-info">
+              <div class="variant-item-title-row">
+                <span class="variant-item-name">${variant.label}</span>
+                <span class="tag-badge tag-role">${skinLabel}</span>
+                ${isPlaced ? '<span class="tag-badge tag-3d-ready">ACTIVE IN AR</span>' : ''}
+              </div>
+              <span class="variant-item-file">${variant.fileName}</span>
+            </div>
+            <div class="variant-item-actions">
+              <button class="btn-online-spawn" data-action="select-variant" data-variant-id="${variant.id}" id="btn-variant-${cleanStudentName(variant.id)}">
+                ${isPlaced ? 'DESPAWN' : 'SPAWN IN AR'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('[data-action="select-variant"]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const variantId = e.currentTarget.getAttribute('data-variant-id');
+          const variant = student.models.find(m => String(m.id) === String(variantId));
+          if (variant) {
+            this.spawnOnlineModelVariant(student, variant);
+          }
+        });
+      });
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  closeModelVariantModal() {
+    const modal = document.getElementById('model-variant-modal');
+    if (modal) modal.classList.add('hidden');
+    this.activeVariantStudent = null;
   }
 
   openStudentBioModal(student) {
@@ -789,6 +942,9 @@ export class PixelHUDManager {
     const txtId = document.getElementById('bio-id');
     const txtDesc = document.getElementById('bio-desc');
     const btnSpawn = document.getElementById('btn-bio-spawn-action');
+    const variantsSection = document.getElementById('bio-variants-section');
+    const variantsCount = document.getElementById('bio-variants-count');
+    const variantsChips = document.getElementById('bio-variants-chips');
 
     if (imgAvatar) {
       imgAvatar.src = student.portraitUrl || student.avatarUrl || FALLBACK_AVATAR;
@@ -810,11 +966,53 @@ export class PixelHUDManager {
       linkWiki.href = student.wikiUrl || `https://bluearchive.wiki/wiki/${safeTitle}`;
     }
 
+    // Configure model variants inside bio modal
+    if (student.models && student.models.length > 1) {
+      this.selectedBioVariant = student.models[0];
+      if (variantsSection) variantsSection.classList.remove('hidden');
+      if (variantsCount) variantsCount.textContent = `${student.models.length} VARIANTS`;
+
+      if (variantsChips) {
+        variantsChips.innerHTML = student.models.map((variant, i) => {
+          const vModelId = `online_${cleanStudentName(variant.id || variant.fileName)}`;
+          const isPlaced = this.models.some(m => m.id === vModelId && m.placed);
+          return `
+            <button class="bio-variant-chip ${i === 0 ? 'selected' : ''}" data-variant-id="${variant.id}">
+              <span>${variant.skin || variant.label}</span>
+              ${isPlaced ? '<span style="color:#34D399;font-size:8px;">● AR</span>' : ''}
+            </button>
+          `;
+        }).join('');
+
+        variantsChips.querySelectorAll('.bio-variant-chip').forEach((chip) => {
+          chip.addEventListener('click', (e) => {
+            const vId = e.currentTarget.getAttribute('data-variant-id');
+            variantsChips.querySelectorAll('.bio-variant-chip').forEach(c => c.classList.remove('selected'));
+            e.currentTarget.classList.add('selected');
+            const found = student.models.find(m => String(m.id) === String(vId));
+            if (found) {
+              this.selectedBioVariant = found;
+              if (btnSpawn) {
+                const vModelId = `online_${cleanStudentName(found.id || found.fileName)}`;
+                const isP = this.models.some(m => m.id === vModelId && m.placed);
+                btnSpawn.textContent = isP ? `DESPAWN ${found.skin.toUpperCase()}` : `SPAWN 3D: ${found.skin.toUpperCase()}`;
+              }
+            }
+          });
+        });
+      }
+    } else {
+      this.selectedBioVariant = (student.models && student.models[0]) || null;
+      if (variantsSection) variantsSection.classList.add('hidden');
+    }
+
     if (btnSpawn) {
       if (student.hasModel) {
         btnSpawn.classList.remove('hidden');
-        const isPlaced = this.models.some(m => m.id === `online_${student.id}` && m.placed);
-        btnSpawn.textContent = isPlaced ? 'DESPAWN FROM AR' : 'SPAWN 3D IN AR';
+        const chosen = this.selectedBioVariant || (student.models && student.models[0]);
+        const vModelId = chosen ? `online_${cleanStudentName(chosen.id || chosen.fileName)}` : `online_${student.id}`;
+        const isPlaced = this.models.some(m => m.id === vModelId && m.placed);
+        btnSpawn.textContent = isPlaced ? 'DESPAWN FROM AR' : (chosen && chosen.skin !== 'Original' ? `SPAWN 3D: ${chosen.skin.toUpperCase()}` : 'SPAWN 3D IN AR');
       } else {
         btnSpawn.classList.add('hidden');
       }
@@ -827,82 +1025,137 @@ export class PixelHUDManager {
     const modal = document.getElementById('student-bio-modal');
     if (modal) modal.classList.add('hidden');
     this.activeBioStudent = null;
+    this.selectedBioVariant = null;
   }
 
-  async spawnOnlineStudent(student) {
-    if (!student.hasModel || !student.downloadUrl) {
-      this.showToast(`NO 3D GLB FOUND FOR ${student.name}`, 'yellow');
+  /**
+   * Downloads a model variant, immediately caches its .ogg voice lines into localStorage for 0ms latency,
+   * and deploys it into the AR scene.
+   */
+  async spawnOnlineModelVariant(student, variant) {
+    if (!variant || !variant.downloadUrl) {
+      this.showToast(`NO GLB FOUND FOR ${variant?.label || student.name}`, 'yellow');
       return;
     }
 
-    const modelId = `online_${student.id}`;
+    const modelId = `online_${cleanStudentName(variant.id || variant.fileName)}`;
     const currentlyPlaced = this.models.find(m => m.id === modelId && m.placed);
     if (currentlyPlaced) {
       this.removeModelById(modelId);
       this.renderOnlineRoster();
       this.closeStudentBioModal();
+      this.closeModelVariantModal();
       return;
     }
 
-    const btn = document.getElementById(`spawn-btn-${student.id}`);
+    const cardSpawnBtn = document.getElementById(`spawn-btn-${student.id}`);
+    const modalVariantBtn = document.getElementById(`btn-variant-${cleanStudentName(variant.id)}`);
     const bioBtn = document.getElementById('btn-bio-spawn-action');
-    if (btn) {
-      btn.classList.add('downloading');
-      btn.textContent = 'DL 0%';
-    }
-    if (bioBtn) {
-      bioBtn.classList.add('downloading');
-      bioBtn.textContent = 'DOWNLOADING...';
-    }
 
-    this.showToast(`DOWNLOADING ${student.name.toUpperCase()} GLB...`, 'blue');
+    const setButtonLoading = (text) => {
+      if (cardSpawnBtn) {
+        cardSpawnBtn.classList.add('downloading');
+        cardSpawnBtn.textContent = text;
+      }
+      if (modalVariantBtn) {
+        modalVariantBtn.classList.add('downloading');
+        modalVariantBtn.textContent = text;
+      }
+      if (bioBtn) {
+        bioBtn.classList.add('downloading');
+        bioBtn.textContent = text;
+      }
+    };
+
+    setButtonLoading('DL 0%');
+    this.showToast(`DOWNLOADING ${variant.label.toUpperCase()} GLB...`, 'blue');
 
     try {
-      const blobUrl = await downloadGLBWithProgress(student.downloadUrl, (pct) => {
-        if (btn) btn.textContent = `DL ${pct}%`;
-        if (bioBtn) bioBtn.textContent = `DL ${pct}%`;
+      // 1. Download GLB 3D model with stream progress
+      const blobUrl = await downloadGLBWithProgress(variant.downloadUrl, (pct) => {
+        setButtonLoading(`DL ${pct}%`);
       });
 
+      // 2. Immediately download & cache voice lines into localStorage for instant 0ms latency
+      setButtonLoading('VOICES...');
+      this.showToast(`CACHING VOICES FOR ${variant.label.toUpperCase()}...`, 'blue');
+
+      let voiceConfig = await fetchCharacterVoicesFromWiki(variant.label || student.name);
+      if (!voiceConfig || (!voiceConfig.spawn?.length && !voiceConfig.pickup?.length && !voiceConfig.idle?.length)) {
+        voiceConfig = await fetchCharacterVoicesFromWiki(student.name);
+      }
+
+      let cachedVoiceConfig = null;
+      if (voiceConfig) {
+        cachedVoiceConfig = await downloadAndCacheCharacterVoices(voiceConfig, (curr, total) => {
+          setButtonLoading(`VOX ${curr}/${total}`);
+        });
+      }
+
+      // 3. Register model definition
       let existingModel = this.models.find(m => m.id === modelId);
       if (!existingModel) {
         existingModel = {
           id: modelId,
-          name: `${student.name.toUpperCase()}`,
-          subtitle: `${student.school} • ${student.role}`,
+          name: `${variant.label.toUpperCase()}`,
+          subtitle: `${student.school} • ${student.role} [${variant.skin || 'Original'}]`,
           src: blobUrl,
           scale: { x: 1, y: 1, z: 1 },
           iconSvg: `<img src="${student.avatarUrl}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;" onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'"/>`,
-          animations: null, // Auto-detected when loaded into scene!
+          animations: null, // Auto-detected when loaded into scene
           mouthConfig: {
-            enableMouthAtlas: false // Native model mouth bone animations preserved
+            enableMouthAtlas: false // Native model mouth animations preserved
           },
           isOnline: true,
           studentData: student,
+          variantData: variant,
+          audio: cachedVoiceConfig,
           placed: false,
           entityEl: null
         };
         this.models.push(existingModel);
       } else {
         existingModel.src = blobUrl;
+        if (cachedVoiceConfig) existingModel.audio = cachedVoiceConfig;
       }
 
+      // 4. Close modals & Spawn in AR
       this.closeStudentBioModal();
+      this.closeModelVariantModal();
       this.spawnModelById(modelId);
+
+      // 5. Load pre-cached 0-latency audio into audioManager
+      if (cachedVoiceConfig) {
+        this.audioManager.loadCharacter(cachedVoiceConfig, variant.label);
+      }
+
       this.renderOnlineRoster();
-      this.showToast(`SPAWNED ONLINE: ${student.name}`, 'green');
+      this.showToast(`SPAWNED: ${variant.label}`, 'green');
     } catch (err) {
-      console.error('[HUD] Error downloading/spawning online model:', err);
+      console.error('[HUD] Error downloading/spawning model variant:', err);
       this.showToast(`DOWNLOAD FAILED: ${err.message}`, 'yellow');
     } finally {
-      if (btn) {
-        btn.classList.remove('downloading');
-        btn.textContent = 'SPAWN';
+      if (cardSpawnBtn) {
+        cardSpawnBtn.classList.remove('downloading');
+        cardSpawnBtn.textContent = 'SPAWN';
+      }
+      if (modalVariantBtn) {
+        modalVariantBtn.classList.remove('downloading');
+        modalVariantBtn.textContent = 'SPAWN IN AR';
       }
       if (bioBtn) {
         bioBtn.classList.remove('downloading');
         bioBtn.textContent = 'SPAWN 3D IN AR';
       }
     }
+  }
+
+  async spawnOnlineStudent(student) {
+    const chosenVariant = this.selectedBioVariant || (student.models && student.models[0]) || null;
+    if (chosenVariant) {
+      return this.spawnOnlineModelVariant(student, chosenVariant);
+    }
+    this.showToast(`NO 3D MODEL FOUND FOR ${student.name}`, 'yellow');
   }
 
   toggleInstructions(forceState) {
@@ -1159,9 +1412,12 @@ export class PixelHUDManager {
         const queryName = model.name || model.id;
         const fetchedCfg = await fetchCharacterVoicesFromWiki(queryName);
         if (fetchedCfg) {
-          audioCfg = fetchedCfg;
-          model.audio = fetchedCfg;
+          audioCfg = await downloadAndCacheCharacterVoices(fetchedCfg);
+          model.audio = audioCfg;
         }
+      } else if (!audioCfg.isCachedLocally) {
+        audioCfg = await downloadAndCacheCharacterVoices(audioCfg);
+        model.audio = audioCfg;
       }
 
       if (this.activeModelId === model.id && audioCfg) {

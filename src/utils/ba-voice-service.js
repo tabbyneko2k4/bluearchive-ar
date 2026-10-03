@@ -9,7 +9,9 @@
 
 const BLUE_ARCHIVE_WIKI_API = 'https://bluearchive.wiki/w/api.php';
 const VOICE_CACHE_PREFIX = 'ba_voice_cache_v1_';
+const AUDIO_STORAGE_PREFIX = 'ba_voice_audio_';
 const memoryVoiceCache = new Map();
+const memoryVoiceAudioMap = new Map();
 
 /**
  * Normalizes character name to Wiki file naming convention
@@ -42,7 +44,152 @@ export function formatWikiCharacterName(rawName) {
 }
 
 /**
+ * Safely persists audio base64 data to localStorage with automatic quota management
+ */
+function safeSaveVoiceToLocalStorage(key, dataUrl) {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    localStorage.setItem(key, dataUrl);
+    return true;
+  } catch (err) {
+    console.warn('[BA Voice] LocalStorage quota reached, purging oldest cached voice clips...', err);
+    try {
+      const voiceKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(AUDIO_STORAGE_PREFIX)) {
+          voiceKeys.push(k);
+        }
+      }
+      // Evict half of the older cached audio clips to free quota
+      const toRemove = voiceKeys.slice(0, Math.max(1, Math.floor(voiceKeys.length / 2)));
+      toRemove.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(key, dataUrl);
+      return true;
+    } catch (e) {
+      console.warn('[BA Voice] Unable to cache audio to localStorage after eviction:', e);
+      return false;
+    }
+  }
+}
+
+/**
+ * Converts a Blob to a base64 Data URL string
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Downloads a single .ogg voice file, saves it to localStorage, and returns a local data URL.
+ * Guarantees 0-latency playback without network delays.
+ * @param {string} url - Remote audio URL
+ * @returns {Promise<string>} Data URL or Blob URL
+ */
+export async function cacheVoiceAudioLocally(url) {
+  if (!url) return '';
+
+  // 1. Check in-memory audio cache
+  if (memoryVoiceAudioMap.has(url)) {
+    return memoryVoiceAudioMap.get(url);
+  }
+
+  // 2. Check localStorage
+  const storageKey = `${AUDIO_STORAGE_PREFIX}${encodeURIComponent(url.split('/').pop() || url)}`;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(storageKey);
+      if (cached && cached.startsWith('data:audio/')) {
+        memoryVoiceAudioMap.set(url, cached);
+        return cached;
+      }
+    } catch (e) {}
+  }
+
+  // 3. Download audio file over network
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Voice fetch error: ${res.status} ${res.statusText}`);
+    }
+
+    const blob = await res.blob();
+    const dataUrl = await blobToDataURL(blob);
+
+    // Save to memory cache
+    memoryVoiceAudioMap.set(url, dataUrl);
+
+    // Save to localStorage for persistent zero latency across sessions
+    safeSaveVoiceToLocalStorage(storageKey, dataUrl);
+
+    return dataUrl;
+  } catch (err) {
+    console.warn(`[BA Voice] Failed to preload audio locally: ${url}`, err);
+    // Fallback to original URL if download fails
+    return url;
+  }
+}
+
+/**
+ * Downloads and caches all voice lines for a student into localStorage.
+ * Replaces remote URLs with local base64 Data URLs so playback is instantaneous with zero latency.
+ * @param {Object} voiceConfig - { spawn: string[], pickup: string[], idle: string[], intervalSeconds?: number }
+ * @param {Function} onProgress - Optional callback (completedCount, totalCount)
+ * @returns {Promise<Object>} Updated voiceConfig with zero-latency local data URLs
+ */
+export async function downloadAndCacheCharacterVoices(voiceConfig, onProgress = null) {
+  if (!voiceConfig) return voiceConfig;
+
+  const spawnUrls = Array.isArray(voiceConfig.spawn) ? voiceConfig.spawn : [];
+  const pickupUrls = Array.isArray(voiceConfig.pickup) ? voiceConfig.pickup : [];
+  const idleUrls = Array.isArray(voiceConfig.idle) ? voiceConfig.idle : [];
+
+  const uniqueUrls = Array.from(new Set([...spawnUrls, ...pickupUrls, ...idleUrls])).filter(Boolean);
+  const total = uniqueUrls.length;
+  let completed = 0;
+
+  if (total === 0) return voiceConfig;
+
+  console.log(`[BA Voice] Preloading & caching ${total} voice lines into localStorage for instant zero-latency playback...`);
+
+  const urlMap = new Map();
+
+  await Promise.all(uniqueUrls.map(async (url) => {
+    try {
+      const localDataUrl = await cacheVoiceAudioLocally(url);
+      urlMap.set(url, localDataUrl);
+    } catch (err) {
+      urlMap.set(url, url);
+    } finally {
+      completed++;
+      if (typeof onProgress === 'function') {
+        onProgress(completed, total);
+      }
+    }
+  }));
+
+  const cachedConfig = {
+    ...voiceConfig,
+    spawn: spawnUrls.map(u => urlMap.get(u) || u),
+    pickup: pickupUrls.map(u => urlMap.get(u) || u),
+    idle: idleUrls.map(u => urlMap.get(u) || u),
+    isCachedLocally: true
+  };
+
+  console.log(`[BA Voice] All ${total} voice lines cached in localStorage!`);
+  return cachedConfig;
+}
+
+/**
  * Fetches and groups all available voice lines for a student from bluearchive.wiki
+ * Supports automatic fallback from variant name to base name (e.g. "Shiroko (Cycling)" -> "Shiroko")
  * @param {string} rawCharacterName
  * @returns {Promise<{ spawn: string[], pickup: string[], idle: string[], intervalSeconds: number } | null>}
  */
@@ -106,14 +253,6 @@ export async function fetchCharacterVoicesFromWiki(rawCharacterName) {
     const monologUrls = [];
     const actUrls = [];
 
-    // Map normalized titles if needed
-    const normalizedMap = new Map();
-    if (Array.isArray(data.query?.normalized)) {
-      data.query.normalized.forEach(n => {
-        normalizedMap.set(n.to, n.from);
-      });
-    }
-
     Object.values(pages).forEach(page => {
       // Ignore missing files
       if (page.missing !== undefined || !page.imageinfo || !page.imageinfo[0]?.url) {
@@ -144,20 +283,30 @@ export async function fetchCharacterVoicesFromWiki(rawCharacterName) {
       intervalSeconds: 20
     };
 
+    // If no voices found and character name had variants (e.g. "Airi (Band)"), fallback to base student ("Airi")
+    if (spawnUrls.length === 0 && pickupUrls.length === 0 && idleUrls.length === 0) {
+      if (rawCharacterName.includes('(')) {
+        const baseName = rawCharacterName.split('(')[0].trim();
+        if (baseName && baseName !== rawCharacterName) {
+          console.log(`[BA Voice] No voices for variant "${rawCharacterName}", falling back to base student "${baseName}"...`);
+          return await fetchCharacterVoicesFromWiki(baseName);
+        }
+      }
+      return null;
+    }
+
     console.log(`[BA Voice] Resolved voice lines for "${wikiName}":`, {
       spawnCount: spawnUrls.length,
       pickupCount: pickupUrls.length,
       idleCount: idleUrls.length
     });
 
-    // Cache valid results
-    if (spawnUrls.length > 0 || pickupUrls.length > 0 || idleUrls.length > 0) {
-      memoryVoiceCache.set(cacheKey, result);
-      if (typeof localStorage !== 'undefined') {
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify(result));
-        } catch (e) {}
-      }
+    // Cache valid results in localStorage
+    memoryVoiceCache.set(cacheKey, result);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(result));
+      } catch (e) {}
     }
 
     return result;

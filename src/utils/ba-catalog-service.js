@@ -9,6 +9,7 @@
 
 const GITHUB_TREES_API = 'https://api.github.com/repos/lihaohong6/BlueArchiveModels/git/trees/main';
 const BLUE_ARCHIVE_WIKI_API = 'https://bluearchive.wiki/w/api.php';
+const MODEL_VIEWER_RAW_URL = 'https://bluearchive.wiki/wiki/Module:ModelViewer/data.json?action=raw';
 const WIKI_API = 'https://api.ennead.cc/buruaka/character';
 const SCHALE_ICON_BASE = 'https://schaledb.com/images/student/icon';
 const SCHALE_PORTRAIT_BASE = 'https://schaledb.com/images/student/portrait';
@@ -19,6 +20,7 @@ export const FALLBACK_AVATAR = "data:image/svg+xml;charset=UTF-8,%3csvg xmlns='h
 const CACHE_KEYS = {
   MODELS: 'ba_models_tree_cache_v4',
   WIKI: 'ba_wiki_cache_v4',
+  MODEL_VIEWER: 'ba_model_viewer_cache_v5',
   TIMESTAMP: 'ba_catalog_timestamp_v4'
 };
 
@@ -60,6 +62,79 @@ export function cleanStudentName(s) {
 
 export function normalizeName(str) {
   return cleanStudentName(str);
+}
+
+/**
+ * Fetches Wiki ModelViewer official database:
+ * https://bluearchive.wiki/wiki/Module:ModelViewer/data.json?action=raw
+ * Provides exact mapping of students to their various 3D models/costumes.
+ */
+export async function fetchModelViewerDatabase() {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(CACHE_KEYS.MODEL_VIEWER);
+      const cachedTime = localStorage.getItem(`${CACHE_KEYS.MODEL_VIEWER}_time`);
+      if (cached && cachedTime && (Date.now() - parseInt(cachedTime, 10) < CACHE_TTL_MS)) {
+        const parsed = JSON.parse(cached);
+        if (parsed && Array.isArray(parsed.characters) && parsed.characters.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 1. Fetch via MediaWiki API with origin=* (guarantees CORS in all browsers)
+  try {
+    const apiUrl = `${BLUE_ARCHIVE_WIKI_API}?action=query&prop=revisions&titles=Module:ModelViewer/data.json&rvprop=content&rvslots=main&format=json&origin=*`;
+    const res = await fetch(apiUrl);
+    if (res.ok) {
+      const data = await res.json();
+      const page = Object.values(data.query?.pages || {})[0];
+      const rawContent = page?.revisions?.[0]?.slots?.main?.['*'];
+      if (rawContent) {
+        const parsed = JSON.parse(rawContent);
+        if (parsed && Array.isArray(parsed.characters) && parsed.characters.length > 0) {
+          if (typeof localStorage !== 'undefined') {
+            try {
+              localStorage.setItem(CACHE_KEYS.MODEL_VIEWER, JSON.stringify(parsed));
+              localStorage.setItem(`${CACHE_KEYS.MODEL_VIEWER}_time`, Date.now().toString());
+            } catch (e) {}
+          }
+          console.log(`[BACatalog] Loaded ${parsed.characters.length} characters from Wiki ModelViewer database.`);
+          return parsed;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[BACatalog] MediaWiki query for ModelViewer failed, trying raw fallback...', err);
+  }
+
+  // 2. Direct raw fetch fallback
+  try {
+    const res = await fetch(MODEL_VIEWER_RAW_URL);
+    if (res.ok) {
+      const parsed = await res.json();
+      if (parsed && Array.isArray(parsed.characters) && parsed.characters.length > 0) {
+        if (typeof localStorage !== 'undefined') {
+          try {
+            localStorage.setItem(CACHE_KEYS.MODEL_VIEWER, JSON.stringify(parsed));
+            localStorage.setItem(`${CACHE_KEYS.MODEL_VIEWER}_time`, Date.now().toString());
+          } catch (e) {}
+        }
+        return parsed;
+      }
+    }
+  } catch (e) {}
+
+  // 3. Fallback to cached version if exists
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(CACHE_KEYS.MODEL_VIEWER);
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  return { base: 'https://cdn.jsdelivr.net/gh/lihaohong6/BlueArchiveModels@main/', characters: [] };
 }
 
 /**
@@ -229,51 +304,42 @@ export async function fetchCharacterWikiList() {
 }
 
 /**
- * Builds unified catalog by pairing GitHub 3D GLB Models with accurate Wiki dossiers & full image assets
+ * Builds unified catalog by integrating ModelViewer database (multi-model student support),
+ * official Wiki dossiers, and GitHub GLB repositories.
  */
 export async function getUnifiedCharacterCatalog() {
-  const [wikiList, glbList] = await Promise.all([
+  const [wikiList, glbList, modelViewerData] = await Promise.all([
     fetchCharacterWikiList(),
-    fetchGitHubModelsList()
+    fetchGitHubModelsList(),
+    fetchModelViewerDatabase()
   ]);
 
-  // Matcher function linking GLB model names to Wiki records
-  function findStudentForModel(modelName) {
-    // 1. Direct name match
-    let found = wikiList.find(w => w.name === modelName);
+  const baseCdnUrl = modelViewerData.base || 'https://cdn.jsdelivr.net/gh/lihaohong6/BlueArchiveModels@main/';
+  const modelViewerCharacters = modelViewerData.characters || [];
+
+  // Matcher function linking character name to Wiki dossiers
+  function findStudentInfo(charName) {
+    let found = wikiList.find(w => w.name === charName);
     if (found) return found;
 
-    // 2. Normalized name match
-    const mClean = cleanStudentName(modelName);
-    found = wikiList.find(w => cleanStudentName(w.name) === mClean);
+    const cClean = cleanStudentName(charName);
+    found = wikiList.find(w => cleanStudentName(w.name) === cClean);
     if (found) return found;
 
-    // 3. Fallback matching base name before parentheses (e.g. "Saori (Dress) (Cafe)" -> "Saori (Dress)")
-    if (modelName.includes('(')) {
-      const stripped = modelName.replace(/\s*\(carrier.*?\)/i, '')
-        .replace(/\s*\(scenario.*?\)/i, '')
-        .replace(/\s*\(weapon.*?\)/i, '')
-        .replace(/\s*\(no weapon.*?\)/i, '')
-        .replace(/\s*\(cafe.*?\)/i, '')
-        .replace(/\s*\(cut-in.*?\)/i, '')
-        .replace(/\s*\(normal.*?\)/i, '')
-        .trim();
-      found = wikiList.find(w => cleanStudentName(w.name) === cleanStudentName(stripped));
-      if (found) return found;
-
-      const baseName = modelName.split('(')[0].trim();
-      const bClean = cleanStudentName(baseName);
-      found = wikiList.find(w => cleanStudentName(w.name) === bClean);
+    if (charName.includes('(')) {
+      const baseName = charName.split('(')[0].trim();
+      found = wikiList.find(w => cleanStudentName(w.name) === cleanStudentName(baseName));
     }
     return found;
   }
 
-  // Generate catalog from all available 3D models on GitHub
-  const catalog = glbList.map(glb => {
-    const student = findStudentForModel(glb.modelName);
-    const hasWikiMatch = Boolean(student);
-    const studentId = student ? student.id : `glb_${cleanStudentName(glb.modelName)}`;
-    const safeTitle = encodeURIComponent((student ? student.name : glb.modelName).replace(/ /g, '_'));
+  const catalog = [];
+  const processedModelFiles = new Set();
+
+  // 1. Process characters from ModelViewer database (grouped with all costumes/variants)
+  modelViewerCharacters.forEach(char => {
+    const student = findStudentInfo(char.name);
+    const safeTitle = encodeURIComponent((student ? student.name : char.name).replace(/ /g, '_'));
 
     const avatarUrl = student && student.avatarUrl
       ? student.avatarUrl
@@ -283,24 +349,101 @@ export async function getUnifiedCharacterCatalog() {
       ? student.portraitUrl
       : `https://bluearchive.wiki/wiki/Special:FilePath/${safeTitle}.png`;
 
-    return {
-      id: studentId,
-      name: glb.modelName,
-      wikiName: student ? student.name : glb.modelName,
-      school: student ? (student.school || 'Unknown') : 'Special / NPC',
-      role: student ? (student.role || 'Striker') : 'Special',
+    const wikiUrl = student && student.wikiUrl
+      ? student.wikiUrl
+      : `https://bluearchive.wiki/wiki/${safeTitle}`;
+
+    // Transform models array with complete metadata
+    const models = (char.models || []).map(m => {
+      const file = m.file;
+      const fileName = decodeURIComponent(file);
+      processedModelFiles.add(fileName.toLowerCase());
+
+      const skinName = m.skin && m.skin.trim() !== '' ? m.skin : 'Original';
+      const modelId = m.id || fileName.replace(/\.glb$/i, '');
+      const label = m.label || modelId;
+
+      const glbMeta = glbList.find(g => g.fileName.toLowerCase() === fileName.toLowerCase());
+      const size = glbMeta ? glbMeta.size : 0;
+
+      return {
+        id: modelId,
+        label: label,
+        skin: skinName,
+        fileName: fileName,
+        file: file,
+        size: size,
+        downloadUrl: `https://raw.githubusercontent.com/lihaohong6/BlueArchiveModels/main/${file}`,
+        cdnUrl: `${baseCdnUrl}${file}`,
+        hasModel: true
+      };
+    });
+
+    const defaultModel = models.length > 0 ? models[0] : null;
+
+    catalog.push({
+      id: cleanStudentName(char.name),
+      name: char.name,
+      wikiName: student ? student.name : char.name,
+      school: student ? (student.school || 'Kivotos') : 'Kivotos',
+      role: student ? (student.role || 'Striker') : 'Striker',
       rarity: student ? (student.rarity || '3★') : '3★',
-      profile: student ? student.profile : `3D Model from Blue Archive archive (${glb.fileName}).`,
+      profile: student ? student.profile : `Student of Kivotos Academy. Has ${models.length} 3D model variants.`,
       avatarUrl: avatarUrl,
       portraitUrl: portraitUrl,
+      wikiUrl: wikiUrl,
+      hasModel: models.length > 0,
+      hasMultipleModels: models.length > 1,
+      models: models,
+      modelCount: models.length,
+      defaultModel: defaultModel,
+      modelFileName: defaultModel ? defaultModel.fileName : '',
+      downloadUrl: defaultModel ? defaultModel.downloadUrl : '',
+      cdnUrl: defaultModel ? defaultModel.cdnUrl : '',
+      modelSize: defaultModel ? defaultModel.size : 0
+    });
+  });
+
+  // 2. Add any standalone GLBs from GitHub that weren't in ModelViewer database
+  glbList.forEach(glb => {
+    if (processedModelFiles.has(glb.fileName.toLowerCase())) return;
+
+    const student = findStudentInfo(glb.modelName);
+    const safeTitle = encodeURIComponent((student ? student.name : glb.modelName).replace(/ /g, '_'));
+
+    const singleModel = {
+      id: glb.modelName,
+      label: glb.modelName,
+      skin: 'Original',
+      fileName: glb.fileName,
+      file: encodeURIComponent(glb.fileName),
+      size: glb.size,
+      downloadUrl: glb.downloadUrl,
+      cdnUrl: glb.cdnUrl,
+      hasModel: true
+    };
+
+    catalog.push({
+      id: cleanStudentName(glb.modelName),
+      name: glb.modelName,
+      wikiName: student ? student.name : glb.modelName,
+      school: student ? (student.school || 'Special / NPC') : 'Special / NPC',
+      role: student ? (student.role || 'Special') : 'Special',
+      rarity: student ? (student.rarity || '3★') : '3★',
+      profile: student ? student.profile : `3D Model from Blue Archive archive (${glb.fileName}).`,
+      avatarUrl: student && student.avatarUrl ? student.avatarUrl : `https://bluearchive.wiki/wiki/Special:FilePath/Portrait_${safeTitle}.png`,
+      portraitUrl: student && student.portraitUrl ? student.portraitUrl : `https://bluearchive.wiki/wiki/Special:FilePath/${safeTitle}.png`,
       wikiUrl: student && student.wikiUrl ? student.wikiUrl : `https://bluearchive.wiki/wiki/${safeTitle}`,
       hasModel: true,
-      hasWikiMatch: hasWikiMatch,
+      hasMultipleModels: false,
+      models: [singleModel],
+      modelCount: 1,
+      defaultModel: singleModel,
       modelFileName: glb.fileName,
-      modelSize: glb.size,
       downloadUrl: glb.downloadUrl,
-      cdnUrl: glb.cdnUrl
-    };
+      cdnUrl: glb.cdnUrl,
+      modelSize: glb.size
+    });
   });
 
   return catalog;
@@ -410,6 +553,7 @@ export function autoDetectBAAnimations(clips, modelId = 'Character', rawName = '
 // Attach globally for debug studio or vanilla scripts
 if (typeof window !== 'undefined') {
   window.BACatalogService = {
+    fetchModelViewerDatabase,
     fetchGitHubModelsList,
     fetchCharacterWikiList,
     getUnifiedCharacterCatalog,
