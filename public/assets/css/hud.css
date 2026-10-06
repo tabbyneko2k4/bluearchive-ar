@@ -1937,3 +1937,419 @@ body {
     font-size: 9px;
   }
 }
+
+/* ==========================================================================
+   Model Variant Selection Modal & Multi-Model Costume Selector
+   ========================================================================== */
+.model-variant-modal-overlay {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  background: rgba(4, 6, 12, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: auto;
+  overflow: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.model-variant-modal-overlay.hidden {
+  display: none !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
+.model-variant-card {
+  background: var(--card-bg-elevated);
+  border: 1px solid var(--border-structural);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.model-variant-header {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-structural);
+  background: rgba(0, 0, 0, 0.3);
+  min-width: 0;
+}
+
+.variant-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.variant-header-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 8px;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  object-fit: cover;
+}
+
+.variant-modal-student-name {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+
+.variant-modal-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.model-variant-body {
+  padding: 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+}
+
+.variant-prompt-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-pixel);
+  font-size: 9.5px;
+  color: #93C5FD;
+  background: rgba(59, 130, 246, 0.12);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.variant-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variant-card-item {
+  background: var(--btn-base);
+  border: 1px solid var(--border-structural);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.variant-card-item:hover {
+  background: var(--btn-hover);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.variant-card-item.active-in-ar {
+  border-color: rgba(52, 211, 153, 0.5);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.variant-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.variant-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.variant-item-name {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.variant-item-file {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-variant-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-structural);
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Bio modal variant chips */
+.bio-variants-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.bio-variant-chip {
+  background: var(--btn-base);
+  border: 1px solid var(--border-structural);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.bio-variant-chip:hover {
+  background: var(--btn-hover);
+  border-color: #60A5FA;
+}
+
+.bio-variant-chip.selected {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #60A5FA;
+  color: #93C5FD;
+}
+
+.tag-models-count {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.btn-choose-variant {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #93C5FD !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
+}
+
+.btn-choose-variant:hover {
+  background: #2563EB !important;
+  color: #FFFFFF !important;
+}
+
+@media (max-width: 480px) {
+  .model-variant-card {
+    max-width: calc(100vw - 16px);
+    max-height: 90vh;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. Credits & Attribution Bento Grid (.credits-wrapper)
+   -------------------------------------------------------------------------- */
+.credits-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credits-header-card {
+  background: var(--btn-base);
+  border: 1px solid var(--border-structural);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credits-app-title {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.credits-app-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: #60A5FA;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.credits-desc-text {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.credits-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.credit-grid-card {
+  background: var(--btn-base);
+  border: 1px solid var(--border-structural);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.credit-grid-card:hover {
+  background: var(--btn-hover);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.credit-grid-card:active {
+  transform: scale(0.98);
+}
+
+.credit-grid-card.full-width {
+  grid-column: span 2;
+}
+
+.credit-grid-card.primary-card {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.credit-card-badge {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.credit-card-badge.accent-demo {
+  background: #E1F3FE;
+  color: #1E40AF;
+}
+
+.credit-card-badge.accent-po {
+  background: #EDF3EC;
+  color: #166534;
+}
+
+.credit-card-badge.accent-game {
+  background: #FBF3DB;
+  color: #854D0E;
+}
+
+.credit-card-badge.accent-fankit {
+  background: #FDEBEC;
+  color: #991B1B;
+}
+
+.credit-card-badge.accent-git {
+  background: rgba(255, 255, 255, 0.15);
+  color: #F7F6F3;
+}
+
+.credit-card-badge.accent-tech {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
+}
+
+.credit-card-title {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.credit-card-link {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: #60A5FA;
+  word-break: break-all;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.credit-card-desc {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.credit-tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.tech-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 3px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-structural);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+@media (max-width: 360px) {
+  .credits-bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .credit-grid-card.full-width {
+    grid-column: span 1;
+  }
+}

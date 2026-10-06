@@ -504,6 +504,20 @@ export class PixelHUDManager {
       }
     });
 
+    const btnOpenCredits = document.getElementById('btn-open-credits');
+    if (btnOpenCredits) {
+      btnOpenCredits.addEventListener('click', () => {
+        this.switchTab('credits');
+      });
+    }
+
+    const btnCreditsBack = document.getElementById('btn-credits-back');
+    if (btnCreditsBack) {
+      btnCreditsBack.addEventListener('click', () => {
+        this.switchTab('system');
+      });
+    }
+
     const btnToggleInstructions = document.getElementById('btn-toggle-instructions');
     if (btnToggleInstructions) {
       btnToggleInstructions.addEventListener('click', () => {

@@ -149,6 +149,10 @@ export function getHUDHTMLTemplate() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             SETTINGS
           </button>
+          <button class="bento-tab-btn" data-tab="credits">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            CREDITS
+          </button>
         </div>
         <button class="bento-close-btn" id="btn-close-drawer">✕</button>
       </div>
@@ -343,6 +347,121 @@ export function getHUDHTMLTemplate() {
               <span class="control-value" id="lbl-autohide">ENABLED</span>
             </div>
             <button class="panel-action-btn" id="btn-toggle-autohide">TOGGLE AUTO-HIDE</button>
+          </div>
+          <div class="control-group" style="margin-top: 10px;">
+            <div class="control-header">
+              <span class="control-label">CREDITS & ATTRIBUTIONS</span>
+              <span class="control-value" style="color: #60A5FA;">INFO</span>
+            </div>
+            <button class="panel-action-btn" id="btn-open-credits" style="border-color: rgba(96, 165, 250, 0.4); color: #93C5FD;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              VIEW CREDITS & LICENSES
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel 5: Credits & Attributions -->
+        <div class="bento-panel hidden" id="panel-credits">
+          <div class="credits-wrapper">
+            <!-- Header Card -->
+            <div class="credits-header-card">
+              <div class="credits-app-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                BLUE ARCHIVE AR
+              </div>
+              <div class="credits-app-tag">WebAR World Tracking (SLAM)</div>
+              <div class="credits-desc-text">
+                Non-commercial fan-made WebAR experiment inspired by Blue Archive. Built with 8th Wall, A-Frame & Three.js.
+              </div>
+            </div>
+
+            <!-- Bento Credits Grid -->
+            <div class="credits-bento-grid">
+              <!-- Item 1: Playground -->
+              <a href="https://kawaiilabs.tabbyneko.asia/bluearchive-ar/" target="_blank" rel="noopener noreferrer" class="credit-grid-card primary-card">
+                <div class="credit-card-badge accent-demo">PLAYGROUND</div>
+                <div class="credit-card-title">Live Playground</div>
+                <div class="credit-card-link">kawaiilabs.tabbyneko.asia/bluearchive-ar/ ↗</div>
+                <div class="credit-card-desc">Interactive mobile WebAR demo & testing sandbox.</div>
+              </a>
+
+              <!-- Item 2: Product Owner -->
+              <a href="https://tabbyneko.asia/" target="_blank" rel="noopener noreferrer" class="credit-grid-card">
+                <div class="credit-card-badge accent-po">PO</div>
+                <div class="credit-card-title">Tabby Neko</div>
+                <div class="credit-card-link">tabbyneko.asia ↗</div>
+                <div class="credit-card-desc">Project owner, architecture & WebAR engineering.</div>
+              </a>
+
+              <!-- Item 3: Credit game Blue Archive -->
+              <a href="https://www.nexon.com/main/en/Blue%20Archive/details" target="_blank" rel="noopener noreferrer" class="credit-grid-card">
+                <div class="credit-card-badge accent-game">GAME IP</div>
+                <div class="credit-card-title">Blue Archive</div>
+                <div class="credit-card-link">nexon.com/details ↗</div>
+                <div class="credit-card-desc">© NEXON Games Co., Ltd. & Yostar, Inc. All rights reserved.</div>
+              </a>
+
+              <!-- Item 4: Luật Fankit -->
+              <a href="https://bluearchive.jp/fankit/guidelines" target="_blank" rel="noopener noreferrer" class="credit-grid-card">
+                <div class="credit-card-badge accent-fankit">POLICY</div>
+                <div class="credit-card-title">Luật Fankit</div>
+                <div class="credit-card-link">bluearchive.jp/fankit/guidelines ↗</div>
+                <div class="credit-card-desc">Secondary creation guidelines for fan projects.</div>
+              </a>
+
+              <!-- Item 5: Git Project -->
+              <a href="https://github.com/tabbyneko2k4/bluearchive-ar" target="_blank" rel="noopener noreferrer" class="credit-grid-card full-width">
+                <div class="credit-card-badge accent-git">GIT PROJECT</div>
+                <div class="credit-card-title">GitHub Repository</div>
+                <div class="credit-card-link">github.com/tabbyneko2k4/bluearchive-ar ↗</div>
+                <div class="credit-card-desc">Open-source repository, CI/CD GitHub Pages deployment.</div>
+              </a>
+
+              <!-- Item 6: Frameworks -->
+              <div class="credit-grid-card full-width">
+                <div class="credit-card-badge accent-tech">FRAMEWORKS</div>
+                <div class="credit-card-title">Framework Credits</div>
+                <div class="credit-tech-tags">
+                  <span class="tech-tag">8th Wall (SLAM WebAR)</span>
+                  <span class="tech-tag">A-Frame 1.3.0</span>
+                  <span class="tech-tag">Three.js</span>
+                  <span class="tech-tag">@pixiv/three-vrm</span>
+                  <span class="tech-tag">Webpack 5</span>
+                  <span class="tech-tag">Google Fonts</span>
+                </div>
+              </div>
+
+              <!-- Item 7: Special Thanks / Community Resources -->
+              <div class="credit-grid-card full-width">
+                <div class="credit-card-badge accent-demo">SPECIAL THANKS</div>
+                <div class="credit-card-title">Tài nguyên cập nhật liên tục</div>
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                  <div>
+                    <a href="https://bluearchive.wiki/" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+                      <span style="font-family: var(--font-pixel); font-size: 10px; color: var(--text-primary);">• Blue Archive Wiki:</span>
+                      <span class="credit-card-link">bluearchive.wiki ↗</span>
+                    </a>
+                    <div style="font-family: var(--font-sans); font-size: 9px; color: var(--text-muted); margin-left: 10px; margin-top: 1px;">
+                      Dữ liệu hội thoại nhân vật, thông tin sinh viên và tệp lồng tiếng.
+                    </div>
+                  </div>
+                  <div>
+                    <a href="https://github.com/lihaohong6/BlueArchiveModels" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+                      <span style="font-family: var(--font-pixel); font-size: 10px; color: var(--text-primary);">• BlueArchiveModels:</span>
+                      <span class="credit-card-link">github.com/lihaohong6/BlueArchiveModels ↗</span>
+                    </a>
+                    <div style="font-family: var(--font-sans); font-size: 9px; color: var(--text-muted); margin-left: 10px; margin-top: 1px;">
+                      Kho tài nguyên 3D models học sinh Blue Archive bởi lihaohong6.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Back Action Button -->
+            <button class="panel-action-btn" id="btn-credits-back" style="margin-top: 4px; width: 100%;">
+              ← BACK TO SETTINGS
+            </button>
           </div>
         </div>
       </div>
